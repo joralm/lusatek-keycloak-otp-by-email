@@ -1,7 +1,8 @@
 # LUSATEK Keycloak OTP by Email Extension
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Keycloak](https://img.shields.io/badge/Keycloak-23.x-blue.svg)](https://www.keycloak.org/)
+[![Keycloak](https://img.shields.io/badge/Keycloak-26.x-blue.svg)](https://www.keycloak.org/)
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
 
 **Enterprise-grade email OTP verification extension for Keycloak**
 
@@ -28,8 +29,8 @@ A production-ready Keycloak extension that provides REST API endpoints for email
 
 ## 📋 Requirements
 
-- **Keycloak**: 23.x or later
-- **Java**: 11 or later
+- **Keycloak**: 26.x or later (tested with 26.0.7)
+- **Java**: 21 or later (for building from source)
 - **Maven**: 3.6+ (for building from source)
 - **SMTP Configuration**: Configured SMTP server in Keycloak realm
 
@@ -37,33 +38,48 @@ A production-ready Keycloak extension that provides REST API endpoints for email
 
 ### Installation
 
+#### For Keycloak 26.x+ (Quarkus-based)
+
 1. **Download or build the extension**:
    ```bash
+   # Ensure you have Java 21 installed
+   java --version
+   
+   # Build the extension
    mvn clean package
    ```
+   
+   The build produces a single deployable JAR: `target/keycloak-otp-by-email-1.0.0.jar`
 
-2. **Copy the JAR to Keycloak**:
+2. **Copy the JAR to Keycloak providers directory**:
    ```bash
    # For standalone Keycloak
-   cp target/keycloak-otp-by-email-1.0.0.jar /path/to/keycloak/providers/
+   cp target/keycloak-otp-by-email-1.0.0.jar /opt/keycloak/providers/
    
    # For Docker/Podman
    docker cp target/keycloak-otp-by-email-1.0.0.jar keycloak:/opt/keycloak/providers/
    ```
 
-3. **Restart Keycloak**:
+3. **Rebuild and restart Keycloak** (required for Keycloak 26+):
    ```bash
    # Standalone
-   ./kc.sh build
-   ./kc.sh start
+   /opt/keycloak/bin/kc.sh build
+   /opt/keycloak/bin/kc.sh start
    
-   # Docker
+   # Or for development mode
+   /opt/keycloak/bin/kc.sh start-dev
+   
+   # Docker - restart container after copying the jar
    docker restart keycloak
    ```
 
-4. **Configure SMTP**: In Keycloak Admin Console → Realm Settings → Email
+4. **Verify the extension is loaded**:
+   - Check Keycloak logs for: `"Registered provider email-otp"` or similar
+   - Test the health endpoint: `GET https://your-keycloak/realms/{realm}/email-otp/health`
+
+5. **Configure SMTP**: In Keycloak Admin Console → Realm Settings → Email
    - Set SMTP host, port, username, password
-   - Test email configuration
+   - Test email configuration using the "Test connection" button
 
 ### Configuration
 
@@ -571,6 +587,36 @@ Unexpected error generating OTP for user: user@example.com
 
 ## 🔧 Troubleshooting
 
+### Extension not loaded (Keycloak 26+)
+
+**Problem**: Extension JAR copied but endpoints return 404 Not Found
+
+**Solutions**:
+1. Verify you ran `kc.sh build` after copying the JAR - this is mandatory in Keycloak 26+
+2. Check Keycloak startup logs for provider registration messages
+3. Ensure the JAR is in `/opt/keycloak/providers/` directory
+4. Verify META-INF/services file exists in JAR: `unzip -l keycloak-otp-by-email-1.0.0.jar | grep META-INF/services`
+5. Check file permissions - JAR must be readable by Keycloak process
+6. For Docker: Ensure JAR is copied before container restart, not after
+
+**Verification**:
+```bash
+# Check if extension is loaded
+curl https://your-keycloak/realms/{realm}/email-otp/health
+
+# Expected response:
+# {"success":true,"message":"LUSATEK Email OTP service is running"}
+```
+
+### Java version mismatch
+
+**Problem**: Build fails or runtime errors about unsupported class version
+
+**Solutions**:
+1. Verify Java 21 is installed: `java --version`
+2. Set JAVA_HOME to Java 21: `export JAVA_HOME=/path/to/java21`
+3. Ensure Keycloak container/server is running Java 21 (Keycloak 26+ requires Java 21)
+
 ### Email not sending
 
 **Problem**: OTP endpoint returns success but no email is received
@@ -616,16 +662,29 @@ Unexpected error generating OTP for user: user@example.com
 
 ### Building from Source
 
+**Prerequisites**:
+- Java 21 or later
+- Maven 3.6+
+
 ```bash
 # Clone repository
 git clone https://github.com/joralm/joralm-keycloak-otp-by-email.git
 cd joralm-keycloak-otp-by-email
 
+# Verify Java version
+java --version  # Should show Java 21 or later
+
 # Build with Maven
 mvn clean package
 
-# Output: target/keycloak-otp-by-email-1.0.0.jar
+# Output: target/keycloak-otp-by-email-1.0.0.jar (deployable extension)
+# Output: target/keycloak-otp-by-email-1.0.0-dist.zip (distribution package)
 ```
+
+**Which file to deploy?**
+- Deploy the JAR file: `target/keycloak-otp-by-email-1.0.0.jar`
+- Copy it to `/opt/keycloak/providers/` directory
+- The distribution ZIP contains documentation and examples, but is not needed for deployment
 
 ### Running Tests (TODO)
 
@@ -636,12 +695,19 @@ mvn test
 ### Creating Distribution Package
 
 ```bash
+# Build everything
 mvn clean package
 
 # Creates:
-# - target/keycloak-otp-by-email-1.0.0.jar (extension)
-# - target/keycloak-otp-by-email-1.0.0-dist.zip (full distribution)
+# - target/keycloak-otp-by-email-1.0.0.jar (extension for deployment)
+# - target/keycloak-otp-by-email-1.0.0-dist.zip (full distribution with docs)
 ```
+
+**Deployment artifact**: Use `keycloak-otp-by-email-1.0.0.jar` - this single JAR contains:
+- All compiled classes
+- META-INF/services entries for SPI discovery
+- Email templates and message resources
+- Manifest with extension metadata
 
 ### Project Structure
 
