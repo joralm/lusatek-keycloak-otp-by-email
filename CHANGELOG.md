@@ -5,6 +5,33 @@ All notable changes to the LUSATEK Keycloak OTP by Email extension will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-12-19
+
+### Fixed
+- Fixed email template structure to follow Keycloak theme conventions
+  - Moved templates from `theme-resources/` to `themes/lusatek-otp/email/`
+  - Added `META-INF/keycloak-themes.json` for theme discovery
+  - Added `theme.properties` to extend base theme
+  - Resolves `TemplateNotFoundException: Template not found for name "text/email-otp"`
+
+### Changed
+- Updated all documentation to reflect new theme structure:
+  - README.md
+  - docs/STRUCTURE.md
+  - PROJECT_SUMMARY.md
+  - CONTRIBUTING.md
+
+### Added
+- Added comprehensive theme fix documentation (docs/THEME_FIX.md)
+- Added installation step to configure email theme in realm settings
+
+### Migration Notes
+- After upgrading to v1.0.1, administrators must:
+  1. Deploy the updated JAR to Keycloak's providers directory
+  2. Run `kc.sh build` to rebuild Keycloak
+  3. In Admin Console: Realm Settings → Themes → Email Theme → Select `lusatek-otp`
+  4. Restart Keycloak
+
 ## [1.0.0] - 2025-12-15
 
 ### Added
@@ -59,4 +86,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stateless design for horizontal scaling
 - Phase Two-inspired project structure
 
+[1.0.1]: https://github.com/joralm/joralm-keycloak-otp-by-email/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/joralm/joralm-keycloak-otp-by-email/releases/tag/v1.0.0
