@@ -25,18 +25,22 @@ keycloak-otp-by-email/
 │   │   │       ├── OtpGenerator.java
 │   │   │       └── RateLimiter.java
 │   │   └── resources/
-│   │       ├── META-INF/services/     # SPI registration
-│   │       │   └── org.keycloak.services.resource.RealmResourceProviderFactory
-│   │       └── theme-resources/       # Email templates
-│   │           ├── templates/email/
-│   │           │   ├── html/email-otp.ftl
-│   │           │   └── text/email-otp.ftl
-│   │           └── messages/          # i18n translations
-│   │               ├── messages_en.properties
-│   │               ├── messages_pt.properties
-│   │               ├── messages_es.properties
-│   │               ├── messages_fr.properties
-│   │               └── messages_de.properties
+│   │       ├── META-INF/
+│   │       │   ├── services/            # SPI registration
+│   │       │   │   └── org.keycloak.services.resource.RealmResourceProviderFactory
+│   │       │   └── keycloak-themes.json # Theme metadata
+│   │       └── themes/                  # Keycloak themes
+│   │           └── lusatek-otp/         # Custom theme
+│   │               └── email/           # Email theme type
+│   │                   ├── html/email-otp.ftl
+│   │                   ├── text/email-otp.ftl
+│   │                   ├── messages/    # i18n translations
+│   │                   │   ├── messages_en.properties
+│   │                   │   ├── messages_pt.properties
+│   │                   │   ├── messages_es.properties
+│   │                   │   ├── messages_fr.properties
+│   │                   │   └── messages_de.properties
+│   │                   └── theme.properties
 │   └── assembly/
 │       └── dist.xml                   # Distribution package config
 ├── docs/                              # Documentation
@@ -172,14 +176,14 @@ Response to Client
 
 ### Adding New Languages
 
-1. Create `messages_{locale}.properties` in `src/main/resources/theme-resources/messages/`
+1. Create `messages_{locale}.properties` in `src/main/resources/themes/lusatek-otp/email/messages/`
 2. Copy content from `messages_en.properties`
 3. Translate all messages
 4. Rebuild extension
 
 ### Customizing Email Template
 
-1. Edit `src/main/resources/theme-resources/templates/email/html/email-otp.ftl`
+1. Edit `src/main/resources/themes/lusatek-otp/email/html/email-otp.ftl`
 2. Modify HTML/CSS as needed
 3. Keep FreeMarker variables: `${otpCode}`, `${userName}`, etc.
 4. Rebuild extension
@@ -277,7 +281,7 @@ While not currently implemented, you could add:
 Required realm settings:
 - SMTP configuration (Realm Settings → Email)
 - Service account client with roles
-- Email theme (optional, uses base theme)
+- Email theme set to `lusatek-otp` (Realm Settings → Themes → Email Theme)
 
 ## Testing Locally
 
