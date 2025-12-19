@@ -45,14 +45,8 @@ public class EmailService {
             attributes.put("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
             attributes.put("companyName", "LUSATEK");
 
-            emailProvider.setAttribute("otpCode", otpCode);
-            emailProvider.setAttribute("expiryMinutes", expiryMinutes);
-            emailProvider.setAttribute("userName", user.getFirstName() != null ? user.getFirstName() : user.getUsername());
-            emailProvider.setAttribute("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
-            emailProvider.setAttribute("companyName", "LUSATEK");
-
-            // Send email using custom template
-            emailProvider.send("emailOtpSubject", "email-otp.ftl", attributes);
+            // Send email using custom template (without .ftl extension - Keycloak will find html/text versions)
+            emailProvider.send("emailOtpSubject", "email-otp", attributes);
             
             logger.infof("OTP email sent successfully to user: %s", user.getEmail());
         } catch (EmailException e) {
