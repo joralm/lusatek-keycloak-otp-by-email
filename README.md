@@ -61,7 +61,12 @@ A production-ready Keycloak extension that provides REST API endpoints for email
    docker restart keycloak
    ```
 
-4. **Configure SMTP**: In Keycloak Admin Console → Realm Settings → Email
+4. **Configure Email Theme**: In Keycloak Admin Console
+   - Go to Realm Settings → Themes tab
+   - Set Email Theme to `lusatek-otp`
+   - Click Save
+
+5. **Configure SMTP**: In Keycloak Admin Console → Realm Settings → Email
    - Set SMTP host, port, username, password
    - Test email configuration
 
@@ -424,7 +429,7 @@ The extension includes beautiful, responsive email templates with:
 
 To customize email templates:
 
-1. Locate templates in `src/main/resources/theme-resources/templates/email/`
+1. Locate templates in `src/main/resources/themes/lusatek-otp/email/`
 2. Edit HTML template: `html/email-otp.ftl`
 3. Edit text template: `text/email-otp.ftl`
 4. Rebuild and redeploy the extension
@@ -433,7 +438,7 @@ To customize email templates:
 
 To add/modify translations:
 
-1. Locate message files in `src/main/resources/theme-resources/messages/`
+1. Locate message files in `src/main/resources/themes/lusatek-otp/email/messages/`
 2. Edit or create `messages_{locale}.properties`
 3. Rebuild and redeploy the extension
 
@@ -478,8 +483,8 @@ keycloak-otp-by-email/
 │   │   │   ├── model/              # Request/Response DTOs
 │   │   │   └── util/               # Utilities (Generator, RateLimiter)
 │   │   └── resources/
-│   │       ├── META-INF/services/  # SPI configuration
-│   │       └── theme-resources/    # Email templates & messages
+│   │       ├── META-INF/           # SPI configuration & theme metadata
+│   │       └── themes/             # Keycloak email theme
 │   └── assembly/                   # Distribution packaging
 ├── docs/                           # Additional documentation
 ├── pom.xml                         # Maven configuration
