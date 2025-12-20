@@ -45,6 +45,7 @@ public class EmailService {
         attributes.put("companyName", "LUSATEK");
 
         // Implement theme fallback chain: realm configured theme -> lusatek -> keycloak default
+        // Note: Each setAttribute("theme", ...) call replaces the previous value, ensuring clean state per attempt
         String realmEmailTheme = realm.getEmailTheme();
         EmailException lastException = null;
 
