@@ -61,13 +61,11 @@ A production-ready Keycloak extension that provides REST API endpoints for email
    docker restart keycloak
    ```
 
-4. **Configure Email Theme** (Optional): In Keycloak Admin Console
-   - The extension includes a `lusatek` theme with email templates
-   - If your realm has a custom email theme configured, the extension will try to use it first
-   - The extension implements a fallback chain: realm theme → lusatek → keycloak default
-   - Optionally, you can set `lusatek` as the default: Go to Realm Settings → Themes tab
-   - Set Email Theme to `lusatek` and Click Save
-   - Note: This step is **optional** - the extension will use intelligent fallback
+4. **Configure Email Theme** (REQUIRED): In Keycloak Admin Console
+   - Go to Realm Settings → Themes tab
+   - Set **Email Theme** to `lusatek`
+   - Click **Save**
+   - **Important**: This step is REQUIRED for OTP emails to work. The realm must use the `lusatek` email theme to access the OTP email templates.
 
 5. **Configure SMTP**: In Keycloak Admin Console → Realm Settings → Email
    - Set SMTP host, port, username, password

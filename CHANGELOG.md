@@ -8,25 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.2] - 2025-12-20
 
 ### Fixed
-- Fixed email template fallback when realm has custom email theme configured
+- Fixed email template issue when realm has custom email theme configured
   - Renamed theme from `lusatek-otp` to `lusatek` for consistency
-  - Implemented intelligent theme fallback chain: realm theme → lusatek → keycloak default
-  - Resolves issues when magic link or other flows use realm's configured theme
-  - Added comprehensive logging for theme fallback process
+  - Clarified that realm's email theme MUST be set to `lusatek` for OTP emails to work
+  - Reverted runtime theme fallback approach (doesn't work with Keycloak's theme resolution)
+  - Added clear error messages indicating current theme and required configuration
 
 ### Changed
 - Theme name changed from `lusatek-otp` to `lusatek`
-- EmailService now respects realm's configured email theme first
-- Updated all documentation to reflect theme name change
-- Enhanced error messages and logging for better troubleshooting
+- Updated all documentation to clarify email theme configuration is REQUIRED
+- Enhanced logging to show current realm email theme and configuration guidance
+
+### Important Note
+**BREAKING CHANGE**: The realm's email theme must now be explicitly set to `lusatek` in the Keycloak Admin Console for OTP emails to work. Runtime theme fallback is not possible due to how Keycloak's EmailTemplateProvider resolves templates at initialization time.
 
 ### Migration Notes
 - After upgrading to v1.0.2:
   1. Deploy the updated JAR to Keycloak's providers directory
   2. Run `kc.sh build` to rebuild Keycloak
-  3. If you previously set email theme to `lusatek-otp`, update it to `lusatek` (or leave as your custom theme)
+  3. **REQUIRED**: Set realm email theme to `lusatek` (Admin Console → Realm Settings → Themes → Email Theme)
   4. Restart Keycloak
-- The extension now works seamlessly with any realm email theme configuration
 
 ## [1.0.1] - 2025-12-19
 
