@@ -7,7 +7,9 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,21 +40,29 @@ public class EmailService {
             emailProvider.setRealm(realm);
             emailProvider.setUser(user);
 
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put("otpCode", otpCode);
-            attributes.put("expiryMinutes", expiryMinutes);
-            attributes.put("userName", user.getFirstName() != null ? user.getFirstName() : user.getUsername());
-            attributes.put("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
-            attributes.put("companyName", "LUSATEK");
+            // Prepare subject attributes (passed as a List as required by EmailTemplateProvider)
+            String realmName = realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName();
+            List<Object> subjectAttributes = Collections.emptyList(); // Subject comes from messages.properties
+
+            // Prepare body attributes
+            Map<String, Object> bodyAttributes = new HashMap<>();
+            bodyAttributes.put("otpCode", otpCode);
+            bodyAttributes.put("expiryMinutes", expiryMinutes);
+            bodyAttributes.put("userName", user.getFirstName() != null ? user.getFirstName() : user.getUsername());
+            bodyAttributes.put("realmName", realmName);
+            bodyAttributes.put("companyName", "LUSATEK");
 
             // Log current theme configuration for troubleshooting
             String currentTheme = realm.getEmailTheme();
             logger.infof("Sending OTP email to user %s using realm email theme: %s", user.getEmail(), currentTheme != null ? currentTheme : "default");
 
-            // Send email using custom template (without .ftl extension - Keycloak will find html/text versions)
-            // The email-otp template is automatically found by Keycloak's template resolution system
-            // from the lusatek-otp theme provider, regardless of the realm's configured email theme
-            emailProvider.send("emailOtpSubject", "email-otp", attributes);
+            // Send email using custom template WITH .ftl extension
+            // The template is automatically found by Keycloak's template resolution:
+            // 1. Looks in realm theme
+            // 2. Looks in parent themes
+            // 3. Looks in base theme
+            // 4. Looks in provider themes (finds it in lusatek-otp)
+            emailProvider.send("emailOtpSubject", subjectAttributes, "email-otp.ftl", bodyAttributes);
             
             logger.infof("OTP email sent successfully to user: %s", user.getEmail());
         } catch (EmailException e) {
