@@ -6,6 +6,6 @@
     <title>${msg("emailTestSubject", realmName)}</title>
 </head>
 <body>
-<p>${msg("emailTestBodyHtml", realmName)}</p>
+${msg("emailTestBodyHtml", realmName?html)?no_esc}
 </body>
 </html>
