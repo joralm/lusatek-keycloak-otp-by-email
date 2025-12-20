@@ -62,10 +62,12 @@ A production-ready Keycloak extension that provides REST API endpoints for email
    ```
 
 4. **Configure Email Theme** (Optional): In Keycloak Admin Console
-   - The extension automatically uses the `lusatek-otp` theme programmatically
-   - Optionally, you can set it as the default: Go to Realm Settings → Themes tab
-   - Set Email Theme to `lusatek-otp` and Click Save
-   - Note: This step is **optional** as of version 1.0.0+
+   - The extension includes a `lusatek` theme with email templates
+   - If your realm has a custom email theme configured, the extension will try to use it first
+   - The extension implements a fallback chain: realm theme → lusatek → keycloak default
+   - Optionally, you can set `lusatek` as the default: Go to Realm Settings → Themes tab
+   - Set Email Theme to `lusatek` and Click Save
+   - Note: This step is **optional** - the extension will use intelligent fallback
 
 5. **Configure SMTP**: In Keycloak Admin Console → Realm Settings → Email
    - Set SMTP host, port, username, password
@@ -430,7 +432,7 @@ The extension includes beautiful, responsive email templates with:
 
 To customize email templates:
 
-1. Locate templates in `src/main/resources/themes/lusatek-otp/email/`
+1. Locate templates in `src/main/resources/themes/lusatek/email/`
 2. Edit HTML template: `html/email-otp.ftl`
 3. Edit text template: `text/email-otp.ftl`
 4. Rebuild and redeploy the extension
@@ -439,7 +441,7 @@ To customize email templates:
 
 To add/modify translations:
 
-1. Locate message files in `src/main/resources/themes/lusatek-otp/email/messages/`
+1. Locate message files in `src/main/resources/themes/lusatek/email/messages/`
 2. Edit or create `messages_{locale}.properties`
 3. Rebuild and redeploy the extension
 

@@ -57,7 +57,7 @@ Enhancement suggestions are welcome! Please include:
 
 To add a new language:
 
-1. Copy `src/main/resources/themes/lusatek-otp/email/messages/messages_en.properties`
+1. Copy `src/main/resources/themes/lusatek/email/messages/messages_en.properties`
 2. Rename to `messages_{locale}.properties` (e.g., `messages_it.properties`)
 3. Translate all messages
 4. Test with Keycloak

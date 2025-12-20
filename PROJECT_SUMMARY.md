@@ -54,7 +54,7 @@ keycloak-otp-by-email/
 ├── src/main/resources/
 │   ├── META-INF/       # SPI configuration
 │   └── themes/         # Keycloak themes
-│       └── lusatek-otp/
+│       └── lusatek/
 │           └── email/  # Email templates & i18n
 ├── docs/               # Documentação completa
 ├── pom.xml             # Maven config

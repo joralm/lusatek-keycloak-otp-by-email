@@ -5,6 +5,29 @@ All notable changes to the LUSATEK Keycloak OTP by Email extension will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-12-20
+
+### Fixed
+- Fixed email template fallback when realm has custom email theme configured
+  - Renamed theme from `lusatek-otp` to `lusatek` for consistency
+  - Implemented intelligent theme fallback chain: realm theme → lusatek → keycloak default
+  - Resolves issues when magic link or other flows use realm's configured theme
+  - Added comprehensive logging for theme fallback process
+
+### Changed
+- Theme name changed from `lusatek-otp` to `lusatek`
+- EmailService now respects realm's configured email theme first
+- Updated all documentation to reflect theme name change
+- Enhanced error messages and logging for better troubleshooting
+
+### Migration Notes
+- After upgrading to v1.0.2:
+  1. Deploy the updated JAR to Keycloak's providers directory
+  2. Run `kc.sh build` to rebuild Keycloak
+  3. If you previously set email theme to `lusatek-otp`, update it to `lusatek` (or leave as your custom theme)
+  4. Restart Keycloak
+- The extension now works seamlessly with any realm email theme configuration
+
 ## [1.0.1] - 2025-12-19
 
 ### Fixed

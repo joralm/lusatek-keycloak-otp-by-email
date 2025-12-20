@@ -27,7 +27,7 @@ Keycloak expects themes to follow a specific structure with the theme name as a 
 
 **New structure (correct):**
 ```
-src/main/resources/themes/lusatek-otp/email/
+src/main/resources/themes/lusatek/email/
 ├── html/email-otp.ftl
 ├── text/email-otp.ftl
 ├── messages/
@@ -41,9 +41,9 @@ src/main/resources/themes/lusatek-otp/email/
 ### 1. Restructured Theme Directory
 
 Moved all email templates and messages to follow Keycloak's theme convention:
-- Theme name: `lusatek-otp`
+- Theme name: `lusatek`
 - Theme type: `email`
-- Location: `src/main/resources/themes/lusatek-otp/email/`
+- Location: `src/main/resources/themes/lusatek/email/`
 
 ### 2. Added Theme Configuration Files
 
@@ -52,7 +52,7 @@ Moved all email templates and messages to follow Keycloak's theme convention:
 {
   "themes": [
     {
-      "name": "lusatek-otp",
+      "name": "lusatek",
       "types": ["email"]
     }
   ]
@@ -61,7 +61,7 @@ Moved all email templates and messages to follow Keycloak's theme convention:
 
 This file helps Keycloak discover the custom theme in the JAR.
 
-**theme.properties** (`src/main/resources/themes/lusatek-otp/email/theme.properties`):
+**theme.properties** (`src/main/resources/themes/lusatek/email/theme.properties`):
 ```properties
 parent=base
 ```
@@ -82,7 +82,7 @@ Added a new installation step to configure the email theme in the Keycloak realm
 
 > **Configure Email Theme**: In Keycloak Admin Console
 > - Go to Realm Settings → Themes tab
-> - Set Email Theme to `lusatek-otp`
+> - Set Email Theme to `lusatek`
 > - Click Save
 
 ## How to Deploy
@@ -112,7 +112,7 @@ In Keycloak Admin Console:
 
 1. **Select your realm**
 2. **Go to Realm Settings → Themes tab**
-3. **Set Email Theme to `lusatek-otp`**
+3. **Set Email Theme to `lusatek`**
 4. **Click Save**
 5. **Go to Realm Settings → Email tab**
 6. **Configure SMTP settings**
@@ -125,7 +125,7 @@ In Keycloak Admin Console:
 In Keycloak logs, you should see:
 
 ```
-INFO  [org.keycloak.theme] Loading theme lusatek-otp
+INFO  [org.keycloak.theme] Loading theme lusatek
 ```
 
 ### 2. Verify Theme Files in JAR
@@ -136,9 +136,9 @@ jar tf target/keycloak-otp-by-email-1.0.0.jar | grep themes/
 
 Should show:
 ```
-themes/lusatek-otp/email/html/email-otp.ftl
-themes/lusatek-otp/email/text/email-otp.ftl
-themes/lusatek-otp/email/messages/messages_en.properties
+themes/lusatek/email/html/email-otp.ftl
+themes/lusatek/email/text/email-otp.ftl
+themes/lusatek/email/messages/messages_en.properties
 ...
 ```
 
@@ -188,7 +188,7 @@ You should receive an email with the OTP code.
 **Symptom:** Email uses default Keycloak template instead of custom one
 
 **Solutions:**
-1. Verify email theme is set to `lusatek-otp` in realm settings
+1. Verify email theme is set to `lusatek` in realm settings
 2. Clear Keycloak theme cache (restart Keycloak)
 3. Check template files are in correct location in JAR
 
