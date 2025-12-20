@@ -33,64 +33,34 @@ public class EmailService {
      * @throws EmailException if email sending fails
      */
     public void sendOtpEmail(UserModel user, String otpCode, int expiryMinutes) throws EmailException {
-        EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class);
-        emailProvider.setRealm(realm);
-        emailProvider.setUser(user);
-
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put("otpCode", otpCode);
-        attributes.put("expiryMinutes", expiryMinutes);
-        attributes.put("userName", user.getFirstName() != null ? user.getFirstName() : user.getUsername());
-        attributes.put("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
-        attributes.put("companyName", "LUSATEK");
-
-        // Implement theme fallback chain: realm configured theme -> lusatek -> keycloak default
-        // Note: Each setAttribute("theme", ...) call replaces the previous value, ensuring clean state per attempt
-        String realmEmailTheme = realm.getEmailTheme();
-        EmailException lastException = null;
-
-        // Try 1: Use realm's configured email theme (if set and not already 'lusatek')
-        if (realmEmailTheme != null && !realmEmailTheme.isEmpty() && !realmEmailTheme.equals("lusatek")) {
-            try {
-                logger.infof("Attempting to send OTP email using realm configured theme: %s", realmEmailTheme);
-                emailProvider.setAttribute("theme", realmEmailTheme);
-                emailProvider.send("emailOtpSubject", "email-otp", attributes);
-                logger.infof("OTP email sent successfully using realm theme '%s' to user: %s", realmEmailTheme, user.getEmail());
-                return;
-            } catch (EmailException e) {
-                logger.warnf("Failed to send OTP email using realm theme '%s', will try fallback. Error: %s", realmEmailTheme, e.getMessage());
-                lastException = e;
-            }
-        }
-
-        // Try 2: Fall back to 'lusatek' theme
         try {
-            logger.infof("Attempting to send OTP email using lusatek theme");
-            emailProvider.setAttribute("theme", "lusatek");
-            emailProvider.send("emailOtpSubject", "email-otp", attributes);
-            logger.infof("OTP email sent successfully using lusatek theme to user: %s", user.getEmail());
-            return;
-        } catch (EmailException e) {
-            logger.warnf("Failed to send OTP email using lusatek theme, will try Keycloak default. Error: %s", e.getMessage());
-            lastException = e;
-        }
+            EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class);
+            emailProvider.setRealm(realm);
+            emailProvider.setUser(user);
 
-        // Try 3: Fall back to Keycloak default theme (base)
-        try {
-            logger.infof("Attempting to send OTP email using Keycloak default theme");
-            emailProvider.setAttribute("theme", "base");
-            emailProvider.send("emailOtpSubject", "email-otp", attributes);
-            logger.infof("OTP email sent successfully using Keycloak default theme to user: %s", user.getEmail());
-            return;
-        } catch (EmailException e) {
-            logger.errorf("Failed to send OTP email using all fallback themes to user: %s", user.getEmail());
-            lastException = e;
-        }
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("otpCode", otpCode);
+            attributes.put("expiryMinutes", expiryMinutes);
+            attributes.put("userName", user.getFirstName() != null ? user.getFirstName() : user.getUsername());
+            attributes.put("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
+            attributes.put("companyName", "LUSATEK");
 
-        // If all attempts failed, throw the last exception
-        if (lastException != null) {
-            logger.errorf(lastException, "All theme fallback attempts failed for user: %s", user.getEmail());
-            throw lastException;
+            // Log current theme configuration for troubleshooting
+            String currentTheme = realm.getEmailTheme();
+            logger.infof("Sending OTP email to user %s using realm email theme: %s", user.getEmail(), currentTheme != null ? currentTheme : "default");
+
+            // Send email using custom template (without .ftl extension - Keycloak will find html/text versions)
+            // NOTE: This requires the realm's email theme to be set to 'lusatek' or a theme that extends 'lusatek'
+            // in the Keycloak Admin Console under Realm Settings → Themes → Email Theme
+            emailProvider.send("emailOtpSubject", "email-otp", attributes);
+            
+            logger.infof("OTP email sent successfully to user: %s", user.getEmail());
+        } catch (EmailException e) {
+            String currentTheme = realm.getEmailTheme();
+            logger.errorf(e, "Failed to send OTP email to user: %s. Current realm email theme: %s. " +
+                    "Ensure the realm's email theme is set to 'lusatek' in Admin Console → Realm Settings → Themes.",
+                    user.getEmail(), currentTheme != null ? currentTheme : "default");
+            throw e;
         }
     }
 }
