@@ -37,6 +37,9 @@ public class EmailService {
             EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class);
             emailProvider.setRealm(realm);
             emailProvider.setUser(user);
+            
+            // Set the custom theme programmatically to ensure templates are found
+            emailProvider.setAttribute("theme", "lusatek-otp");
 
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("otpCode", otpCode);
