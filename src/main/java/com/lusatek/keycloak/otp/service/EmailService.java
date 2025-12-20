@@ -52,6 +52,7 @@ public class EmailService {
         if (realmEmailTheme != null && !realmEmailTheme.isEmpty() && !realmEmailTheme.equals("lusatek")) {
             try {
                 logger.infof("Attempting to send OTP email using realm configured theme: %s", realmEmailTheme);
+                emailProvider.setAttribute("theme", realmEmailTheme);
                 emailProvider.send("emailOtpSubject", "email-otp", attributes);
                 logger.infof("OTP email sent successfully using realm theme '%s' to user: %s", realmEmailTheme, user.getEmail());
                 return;
