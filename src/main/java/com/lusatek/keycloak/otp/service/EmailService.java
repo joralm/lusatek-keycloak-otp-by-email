@@ -50,15 +50,15 @@ public class EmailService {
             logger.infof("Sending OTP email to user %s using realm email theme: %s", user.getEmail(), currentTheme != null ? currentTheme : "default");
 
             // Send email using custom template (without .ftl extension - Keycloak will find html/text versions)
-            // NOTE: This requires the realm's email theme to be set to 'lusatek' or a theme that extends 'lusatek'
-            // in the Keycloak Admin Console under Realm Settings → Themes → Email Theme
+            // The email-otp template is automatically found by Keycloak's template resolution system
+            // from the lusatek-otp theme provider, regardless of the realm's configured email theme
             emailProvider.send("emailOtpSubject", "email-otp", attributes);
             
             logger.infof("OTP email sent successfully to user: %s", user.getEmail());
         } catch (EmailException e) {
             String currentTheme = realm.getEmailTheme();
             logger.errorf(e, "Failed to send OTP email to user: %s. Current realm email theme: %s. " +
-                    "Ensure the realm's email theme is set to 'lusatek' in Admin Console → Realm Settings → Themes.",
+                    "Verify that the lusatek-otp theme JAR is deployed and Keycloak was rebuilt with 'kc.sh build'.",
                     user.getEmail(), currentTheme != null ? currentTheme : "default");
             throw e;
         }
