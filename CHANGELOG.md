@@ -5,6 +5,44 @@ All notable changes to the LUSATEK Keycloak OTP by Email extension will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-12-22
+
+### Added
+- **Comprehensive Diagnostic System** for email template loading issues
+  - Added detailed logging to `EmailService.sendOtpEmail()` method
+  - Added `EmailService.verifyEmailTemplateConfiguration()` diagnostic method
+  - Added enhanced error logging in `OtpService.generateAndSendOtp()` method
+  - Added new REST endpoint: `GET /realms/{realm}/email-otp/diagnostics`
+  - Created comprehensive diagnostic documentation (docs/DIAGNOSTICS.md)
+  - Added implementation summary (IMPLEMENTATION_SUMMARY.md)
+
+### Changed
+- Enhanced `EmailService` with detailed diagnostic logging:
+  - Logs realm configuration (name, theme, locale, i18n settings)
+  - Logs user configuration (email, username, verification status)
+  - Logs EmailTemplateProvider details
+  - Logs all template attributes being passed
+  - Logs expected template file paths
+  - Provides FreeMarker-specific error detection with troubleshooting hints
+- Enhanced `OtpService` with process flow markers (START, SUCCESS, FAILURE)
+- Updated README.md with diagnostics endpoint and enhanced troubleshooting section
+- Updated docs/API.md with diagnostics endpoint documentation
+
+### Purpose
+This release addresses the issue where `email-otp.ftl` template is not found even though it's in the same directory as other working templates like `email-test.ftl`. The comprehensive diagnostics help identify:
+- Template file location issues
+- Theme configuration problems
+- EmailTemplateProvider availability
+- Attribute or message key issues
+- FreeMarker template syntax errors
+
+### Usage
+After deploying this version, administrators can:
+1. Call `GET /diagnostics` endpoint to check configuration without sending email
+2. Check detailed logs when sending OTP to see full template loading process
+3. Use diagnostic output to quickly identify and fix template loading issues
+4. Follow step-by-step troubleshooting in docs/DIAGNOSTICS.md
+
 ## [1.0.1] - 2025-12-19
 
 ### Fixed
