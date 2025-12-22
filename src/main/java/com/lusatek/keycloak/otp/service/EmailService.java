@@ -145,7 +145,9 @@ public class EmailService {
                 logger.errorf("Root cause message: %s", e.getCause().getMessage());
                 
                 // If it's a FreeMarker template exception, log additional details
-                if (e.getCause().getClass().getName().contains("freemarker")) {
+                // Using package name check as FreeMarker classes are not in our dependencies
+                String causeClassName = e.getCause().getClass().getName();
+                if (causeClassName.startsWith("freemarker.template.")) {
                     logger.errorf("FreeMarker template error detected!");
                     logger.errorf("This suggests the template file cannot be located by Keycloak's theme system");
                     logger.errorf("Please verify:");

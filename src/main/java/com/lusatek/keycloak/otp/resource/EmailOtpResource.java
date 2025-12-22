@@ -3,6 +3,7 @@ package com.lusatek.keycloak.otp.resource;
 import com.lusatek.keycloak.otp.model.OtpResponse;
 import com.lusatek.keycloak.otp.model.SendOtpRequest;
 import com.lusatek.keycloak.otp.model.VerifyOtpRequest;
+import com.lusatek.keycloak.otp.service.EmailService;
 import com.lusatek.keycloak.otp.service.OtpService;
 import com.lusatek.keycloak.otp.util.RateLimiter;
 import jakarta.ws.rs.*;
@@ -267,8 +268,7 @@ public class EmailOtpResource {
             logger.infof("=== EMAIL OTP DIAGNOSTICS ENDPOINT CALLED ===");
             
             // Create EmailService and run verification
-            com.lusatek.keycloak.otp.service.EmailService emailService = 
-                new com.lusatek.keycloak.otp.service.EmailService(session, realm);
+            EmailService emailService = new EmailService(session, realm);
             emailService.verifyEmailTemplateConfiguration();
             
             logger.infof("=== DIAGNOSTICS COMPLETE - Check server logs for details ===");
