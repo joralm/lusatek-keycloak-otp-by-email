@@ -26,6 +26,44 @@ public class EmailService {
     }
     
     /**
+     * Mask email address for privacy (show first 2 chars and domain)
+     * @param email Email address to mask
+     * @return Masked email address
+     */
+    private String maskEmail(String email) {
+        if (email == null || email.length() < 3) {
+            return "***";
+        }
+        int atIndex = email.indexOf('@');
+        if (atIndex < 0) {
+            return email.substring(0, Math.min(2, email.length())) + "***";
+        }
+        String local = email.substring(0, atIndex);
+        String domain = email.substring(atIndex);
+        if (local.length() <= 2) {
+            return local.charAt(0) + "***" + domain;
+        }
+        return local.substring(0, 2) + "***" + domain;
+    }
+    
+    /**
+     * Mask sensitive attribute values for logging
+     * @param key Attribute key
+     * @param value Attribute value
+     * @return Masked value for logging
+     */
+    private String maskAttributeValue(String key, Object value) {
+        if (value == null) {
+            return "null";
+        }
+        // Redact OTP code for security
+        if ("otpCode".equals(key)) {
+            return "[REDACTED]";
+        }
+        return value.toString();
+    }
+    
+    /**
      * Diagnostic method to verify email template configuration
      * This logs detailed information about the email theme setup
      */
@@ -71,7 +109,7 @@ public class EmailService {
     public void sendOtpEmail(UserModel user, String otpCode, int expiryMinutes) throws EmailException {
         // DIAGNOSTIC LOGGING: Start of email sending process
         logger.infof("=== EMAIL-OTP DIAGNOSTIC START ===");
-        logger.infof("Starting OTP email send process for user: %s", user.getEmail());
+        logger.infof("Starting OTP email send process for user: %s", maskEmail(user.getEmail()));
         
         try {
             // DIAGNOSTIC: Realm and email configuration
@@ -84,7 +122,7 @@ public class EmailService {
             
             // DIAGNOSTIC: User configuration
             logger.infof("User configuration:");
-            logger.infof("  - User email: %s", user.getEmail());
+            logger.infof("  - User email: %s", maskEmail(user.getEmail()));
             logger.infof("  - User username: %s", user.getUsername());
             logger.infof("  - User first name: %s", user.getFirstName());
             logger.infof("  - User email verified: %s", user.isEmailVerified());
@@ -109,10 +147,10 @@ public class EmailService {
             attributes.put("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
             attributes.put("companyName", "LUSATEK");
             
-            // DIAGNOSTIC: Log all attributes being passed
+            // DIAGNOSTIC: Log all attributes being passed (with sensitive data masked)
             logger.infof("Template attributes prepared:");
             for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-                logger.infof("  - %s: %s", entry.getKey(), entry.getValue());
+                logger.infof("  - %s: %s", entry.getKey(), maskAttributeValue(entry.getKey(), entry.getValue()));
             }
             
             // DIAGNOSTIC: Log template details before sending
@@ -127,12 +165,12 @@ public class EmailService {
             logger.infof("Calling emailProvider.send() method...");
             emailProvider.send("emailOtpSubject", "email-otp", attributes);
             
-            logger.infof("OTP email sent successfully to user: %s", user.getEmail());
+            logger.infof("OTP email sent successfully to user: %s", maskEmail(user.getEmail()));
             logger.infof("=== EMAIL-OTP DIAGNOSTIC END (SUCCESS) ===");
         } catch (EmailException e) {
             // DIAGNOSTIC: Enhanced error logging
             logger.errorf("=== EMAIL-OTP DIAGNOSTIC END (FAILURE) ===");
-            logger.errorf("Failed to send OTP email to user: %s", user.getEmail());
+            logger.errorf("Failed to send OTP email to user: %s", maskEmail(user.getEmail()));
             logger.errorf("Error type: %s", e.getClass().getName());
             logger.errorf("Error message: %s", e.getMessage());
             
