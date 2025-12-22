@@ -41,26 +41,44 @@ public class OtpService {
      * @return true if OTP was generated and sent successfully
      */
     public boolean generateAndSendOtp(UserModel user) {
+        logger.infof("=== OTP GENERATION PROCESS START ===");
+        logger.infof("Generating OTP for user: %s (ID: %s)", user.getEmail(), user.getId());
+        
         try {
             // Generate OTP
             String otpCode = OtpGenerator.generateOtp();
             long expiryTime = System.currentTimeMillis() + (OTP_EXPIRY_MINUTES * 60 * 1000);
             
+            logger.infof("OTP generated: [REDACTED] (length: %d)", otpCode.length());
+            logger.infof("OTP expiry time: %d (in %d minutes)", expiryTime, OTP_EXPIRY_MINUTES);
+            
             // Store OTP in user attributes
             user.setSingleAttribute(ATTR_OTP_CODE, otpCode);
             user.setSingleAttribute(ATTR_OTP_EXPIRY, String.valueOf(expiryTime));
             
+            logger.infof("OTP stored in user attributes");
             logger.infof("Generated OTP for user %s, expires at %d", user.getEmail(), expiryTime);
             
             // Send email
+            logger.infof("Calling EmailService.sendOtpEmail()...");
             emailService.sendOtpEmail(user, otpCode, OTP_EXPIRY_MINUTES);
             
+            logger.infof("=== OTP GENERATION PROCESS COMPLETE (SUCCESS) ===");
             return true;
         } catch (EmailException e) {
+            logger.errorf("=== OTP GENERATION PROCESS FAILED (EMAIL ERROR) ===");
             logger.errorf(e, "Failed to send OTP email to user: %s", user.getEmail());
+            logger.errorf("EmailException message: %s", e.getMessage());
+            if (e.getCause() != null) {
+                logger.errorf("EmailException cause: %s - %s", 
+                    e.getCause().getClass().getName(), e.getCause().getMessage());
+            }
             return false;
         } catch (Exception e) {
+            logger.errorf("=== OTP GENERATION PROCESS FAILED (UNEXPECTED ERROR) ===");
             logger.errorf(e, "Unexpected error generating OTP for user: %s", user.getEmail());
+            logger.errorf("Exception type: %s", e.getClass().getName());
+            logger.errorf("Exception message: %s", e.getMessage());
             return false;
         }
     }

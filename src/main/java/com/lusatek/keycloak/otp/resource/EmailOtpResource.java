@@ -241,6 +241,48 @@ public class EmailOtpResource {
     public Response health() {
         return Response.ok(new OtpResponse(true, "LUSATEK Email OTP service is running")).build();
     }
+    
+    /**
+     * Diagnostic endpoint to check email template configuration
+     * GET /realms/{realm}/email-otp/diagnostics
+     * 
+     * This endpoint helps debug template loading issues by logging detailed
+     * information about the email theme configuration.
+     */
+    @GET
+    @Path("/diagnostics")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response diagnostics() {
+        try {
+            // Validate authentication
+            if (auth == null) {
+                logger.warn("Unauthenticated request to diagnostics endpoint");
+                return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(new OtpResponse(false, "Authentication required", "AUTH_REQUIRED"))
+                    .build();
+            }
+            
+            RealmModel realm = session.getContext().getRealm();
+            
+            logger.infof("=== EMAIL OTP DIAGNOSTICS ENDPOINT CALLED ===");
+            
+            // Create EmailService and run verification
+            com.lusatek.keycloak.otp.service.EmailService emailService = 
+                new com.lusatek.keycloak.otp.service.EmailService(session, realm);
+            emailService.verifyEmailTemplateConfiguration();
+            
+            logger.infof("=== DIAGNOSTICS COMPLETE - Check server logs for details ===");
+            
+            return Response.ok(new OtpResponse(true, 
+                "Diagnostics complete. Check Keycloak server logs for detailed information.")).build();
+                
+        } catch (Exception e) {
+            logger.errorf(e, "Error running diagnostics");
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(new OtpResponse(false, "Error running diagnostics: " + e.getMessage(), "INTERNAL_ERROR"))
+                .build();
+        }
+    }
 
     /**
      * Find user by email or userId
