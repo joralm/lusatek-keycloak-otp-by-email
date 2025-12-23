@@ -136,9 +136,9 @@ public class EmailService {
             emailProvider.setUser(user);
             logger.infof("User set on email provider");
             
-            // Set the custom theme programmatically to ensure templates are found
-            emailProvider.setAttribute("theme", "lusatek-otp");
-            logger.infof("Theme attribute set to: lusatek-otp");
+            // Note: Theme is automatically picked up from realm settings or JAR configuration
+            // Do NOT use setAttribute("theme", ...) as it only passes a template variable, not sets the theme
+            logger.infof("Email theme will be resolved from realm setting: %s", realm.getEmailTheme());
 
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("otpCode", otpCode);
