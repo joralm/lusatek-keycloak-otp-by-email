@@ -1,3 +1,4 @@
+<#ftl output_format="plainText">
 ${msg("emailOtpTitle")}
 
 ${msg("emailOtpGreeting", userName)}
