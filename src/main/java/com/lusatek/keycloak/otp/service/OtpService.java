@@ -41,26 +41,43 @@ public class OtpService {
      * @return true if OTP was generated and sent successfully
      */
     public boolean generateAndSendOtp(UserModel user) {
+        logger.infof("=== OTP GENERATION PROCESS START ===");
+        logger.infof("Generating OTP for user with ID: %s", user.getId());
+        
         try {
             // Generate OTP
             String otpCode = OtpGenerator.generateOtp();
             long expiryTime = System.currentTimeMillis() + (OTP_EXPIRY_MINUTES * 60 * 1000);
             
+            logger.infof("OTP generated and will expire in %d minutes", OTP_EXPIRY_MINUTES);
+            logger.infof("OTP expiry timestamp: %d", expiryTime);
+            
             // Store OTP in user attributes
             user.setSingleAttribute(ATTR_OTP_CODE, otpCode);
             user.setSingleAttribute(ATTR_OTP_EXPIRY, String.valueOf(expiryTime));
             
-            logger.infof("Generated OTP for user %s, expires at %d", user.getEmail(), expiryTime);
+            logger.infof("OTP stored in user attributes");
             
             // Send email
+            logger.infof("Calling EmailService.sendOtpEmail()...");
             emailService.sendOtpEmail(user, otpCode, OTP_EXPIRY_MINUTES);
             
+            logger.infof("=== OTP GENERATION PROCESS COMPLETE (SUCCESS) ===");
             return true;
         } catch (EmailException e) {
-            logger.errorf(e, "Failed to send OTP email to user: %s", user.getEmail());
+            logger.errorf("=== OTP GENERATION PROCESS FAILED (EMAIL ERROR) ===");
+            logger.errorf(e, "Failed to send OTP email to user ID: %s", user.getId());
+            logger.errorf("EmailException message: %s", e.getMessage());
+            if (e.getCause() != null) {
+                logger.errorf("EmailException cause: %s - %s", 
+                    e.getCause().getClass().getName(), e.getCause().getMessage());
+            }
             return false;
         } catch (Exception e) {
-            logger.errorf(e, "Unexpected error generating OTP for user: %s", user.getEmail());
+            logger.errorf("=== OTP GENERATION PROCESS FAILED (UNEXPECTED ERROR) ===");
+            logger.errorf(e, "Unexpected error generating OTP for user ID: %s", user.getId());
+            logger.errorf("Exception type: %s", e.getClass().getName());
+            logger.errorf("Exception message: %s", e.getMessage());
             return false;
         }
     }
@@ -73,7 +90,7 @@ public class OtpService {
      */
     public boolean verifyOtp(UserModel user, String code) {
         if (code == null || !OtpGenerator.isValidOtpFormat(code)) {
-            logger.warnf("Invalid OTP format for user: %s", user.getEmail());
+            logger.warnf("Invalid OTP format for user ID: %s", user.getId());
             return false;
         }
         
@@ -81,7 +98,7 @@ public class OtpService {
         String expiryStr = user.getFirstAttribute(ATTR_OTP_EXPIRY);
         
         if (storedCode == null || expiryStr == null) {
-            logger.warnf("No OTP found for user: %s", user.getEmail());
+            logger.warnf("No OTP found for user ID: %s", user.getId());
             return false;
         }
         
@@ -89,19 +106,19 @@ public class OtpService {
         try {
             long expiryTime = Long.parseLong(expiryStr);
             if (System.currentTimeMillis() > expiryTime) {
-                logger.warnf("OTP expired for user: %s", user.getEmail());
+                logger.warnf("OTP expired for user ID: %s", user.getId());
                 clearOtp(user);
                 return false;
             }
         } catch (NumberFormatException e) {
-            logger.errorf("Invalid expiry time format for user: %s", user.getEmail());
+            logger.errorf("Invalid expiry time format for user ID: %s", user.getId());
             clearOtp(user);
             return false;
         }
         
         // Verify code
         if (!storedCode.equals(code)) {
-            logger.warnf("Invalid OTP code for user: %s", user.getEmail());
+            logger.warnf("Invalid OTP code for user ID: %s", user.getId());
             return false;
         }
         
@@ -109,7 +126,7 @@ public class OtpService {
         user.setEmailVerified(true);
         clearOtp(user);
         
-        logger.infof("OTP verified successfully for user: %s", user.getEmail());
+        logger.infof("OTP verified successfully for user ID: %s", user.getId());
         return true;
     }
 

@@ -172,6 +172,75 @@ None required (public endpoint)
 
 ---
 
+### 4. Diagnostics
+
+Run diagnostic checks to troubleshoot email template loading issues.
+
+**Endpoint**: `GET /diagnostics`
+
+**Headers**:
+```
+Authorization: Bearer {access_token}
+```
+
+**Description**:
+This endpoint helps identify why email templates like `email-otp.ftl` might not be found. It logs detailed information about the email theme configuration to the Keycloak server logs.
+
+**What it checks**:
+- Realm configuration (name, email theme, locale)
+- EmailTemplateProvider availability
+- Expected template file locations in the JAR
+- Theme configuration files
+
+**Success Response** (200 OK):
+```json
+{
+  "success": true,
+  "message": "Diagnostics complete. Check Keycloak server logs for detailed information."
+}
+```
+
+**Error Responses**:
+
+**401 Unauthorized**:
+```json
+{
+  "success": false,
+  "message": "Authentication required",
+  "errorCode": "AUTH_REQUIRED"
+}
+```
+
+**500 Internal Server Error**:
+```json
+{
+  "success": false,
+  "message": "Error running diagnostics: ...",
+  "errorCode": "INTERNAL_ERROR"
+}
+```
+
+**Usage Example**:
+
+```bash
+# Get token
+TOKEN=$(curl -s -X POST \
+  "https://keycloak.example.com/realms/myrealm/protocol/openid-connect/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=otp-service" \
+  -d "client_secret=YOUR_SECRET" \
+  -d "grant_type=client_credentials" | jq -r .access_token)
+
+# Run diagnostics
+curl -X GET \
+  "https://keycloak.example.com/realms/myrealm/email-otp/diagnostics" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Important**: After calling this endpoint, check the Keycloak server logs for detailed diagnostic output. See [DIAGNOSTICS.md](DIAGNOSTICS.md) for interpreting the results.
+
+---
+
 ## Error Response Format
 
 All error responses follow this format:

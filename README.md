@@ -268,6 +268,46 @@ Check if the extension is loaded and running.
 
 ---
 
+### 🔍 Diagnostics
+
+**Endpoint**: `GET /realms/{realm}/email-otp/diagnostics`
+
+**Authentication**: Required (Bearer token)
+
+Run diagnostic checks to troubleshoot email template loading issues. This endpoint logs detailed information about the email theme configuration to help identify why templates like `email-otp.ftl` might not be found.
+
+#### Response (200 OK)
+```json
+{
+  "success": true,
+  "message": "Diagnostics complete. Check Keycloak server logs for detailed information."
+}
+```
+
+#### What it checks:
+- Realm configuration (name, email theme, locale)
+- EmailTemplateProvider availability
+- Expected template file locations
+- Theme configuration files
+
+#### Usage:
+```bash
+# Get token
+TOKEN=$(curl -s -X POST \
+  "https://keycloak.example.com/realms/myrealm/protocol/openid-connect/token" \
+  -d "client_id=otp-service" \
+  -d "client_secret=YOUR_SECRET" \
+  -d "grant_type=client_credentials" | jq -r .access_token)
+
+# Run diagnostics
+curl -X GET "https://keycloak.example.com/realms/myrealm/email-otp/diagnostics" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Note**: Check Keycloak server logs for detailed diagnostic output. See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) for more information.
+
+---
+
 ## 💻 Usage Examples
 
 ### JavaScript/TypeScript
@@ -576,6 +616,34 @@ Unexpected error generating OTP for user: user@example.com
 - Monitor OTP expiration rates
 
 ## 🔧 Troubleshooting
+
+### Email template not found
+
+**Problem**: Error message like "Template not found for name 'html/email-otp'" or "freemarker.template.TemplateNotFoundException"
+
+**Solutions**:
+1. **Run diagnostics endpoint** to identify the issue:
+   ```bash
+   curl -X GET "https://keycloak.example.com/realms/myrealm/email-otp/diagnostics" \
+     -H "Authorization: Bearer $TOKEN"
+   ```
+   Check Keycloak server logs for detailed diagnostic output.
+
+2. **Verify JAR contents**:
+   ```bash
+   jar tf target/keycloak-otp-by-email-1.0.0.jar | grep email-otp
+   ```
+   Should show: `themes/lusatek-otp/email/html/email-otp.ftl` and `themes/lusatek-otp/email/text/email-otp.ftl`
+
+3. **Rebuild Keycloak** after deploying the JAR:
+   ```bash
+   ./kc.sh build
+   ./kc.sh start
+   ```
+
+4. **Check theme configuration** in Realm Settings → Themes → Email Theme (optional, as the extension sets it programmatically)
+
+5. **Review detailed diagnostics documentation**: See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) for comprehensive troubleshooting guide
 
 ### Email not sending
 
