@@ -134,7 +134,7 @@ public class EmailService {
 
             // Ensure the custom email theme is applied so templates can be resolved
             if (!Objects.equals(EMAIL_THEME_NAME, originalTheme)) {
-                logger.infof("Email theme '%s' is not %s. Applying %s theme for OTP emails.", originalTheme, EMAIL_THEME_NAME, EMAIL_THEME_NAME);
+                logger.infof("Email theme '%s' is not %s. Applying theme for OTP emails.", originalTheme, EMAIL_THEME_NAME);
                 realm.setEmailTheme(EMAIL_THEME_NAME);
                 themeChanged = true;
             }
@@ -213,12 +213,17 @@ public class EmailService {
             throw e;
         } finally {
             if (themeChanged) {
-                if (originalTheme == null) {
-                    realm.setEmailTheme(null);
-                    logger.info("Restored email theme to default (null)");
+                String currentTheme = realm.getEmailTheme();
+                if (Objects.equals(currentTheme, EMAIL_THEME_NAME)) {
+                    if (originalTheme == null) {
+                        realm.setEmailTheme(null);
+                        logger.info("Restored email theme to default (null)");
+                    } else {
+                        realm.setEmailTheme(originalTheme);
+                        logger.infof("Restored email theme to: %s", originalTheme);
+                    }
                 } else {
-                    realm.setEmailTheme(originalTheme);
-                    logger.infof("Restored email theme to: %s", originalTheme);
+                    logger.infof("Skipping theme restoration because realm theme is now: %s", currentTheme);
                 }
             }
         }
