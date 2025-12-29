@@ -17,6 +17,7 @@ import java.util.Map;
 public class EmailService {
     
     private static final Logger logger = Logger.getLogger(EmailService.class);
+    private static final String EMAIL_THEME_NAME = "lusatek-otp";
     
     private final KeycloakSession session;
     private final RealmModel realm;
@@ -131,9 +132,9 @@ public class EmailService {
             logger.infof("  - User email verified: %s", user.isEmailVerified());
 
             // Ensure the custom email theme is applied so templates can be resolved
-            if (!"lusatek-otp".equals(originalTheme)) {
-                logger.infof("Email theme '%s' is not lusatek-otp. Applying lusatek-otp theme for OTP emails.", originalTheme);
-                realm.setEmailTheme("lusatek-otp");
+            if (!EMAIL_THEME_NAME.equals(originalTheme)) {
+                logger.infof("Email theme '%s' is not %s. Applying %s theme for OTP emails.", originalTheme, EMAIL_THEME_NAME, EMAIL_THEME_NAME);
+                realm.setEmailTheme(EMAIL_THEME_NAME);
                 themeChanged = true;
             }
             
