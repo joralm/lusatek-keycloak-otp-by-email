@@ -10,6 +10,7 @@ import org.keycloak.models.UserModel;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Service for sending OTP emails using Keycloak's email system
@@ -132,7 +133,7 @@ public class EmailService {
             logger.infof("  - User email verified: %s", user.isEmailVerified());
 
             // Ensure the custom email theme is applied so templates can be resolved
-            if (!EMAIL_THEME_NAME.equals(originalTheme)) {
+            if (!Objects.equals(EMAIL_THEME_NAME, originalTheme)) {
                 logger.infof("Email theme '%s' is not %s. Applying %s theme for OTP emails.", originalTheme, EMAIL_THEME_NAME, EMAIL_THEME_NAME);
                 realm.setEmailTheme(EMAIL_THEME_NAME);
                 themeChanged = true;
@@ -212,8 +213,13 @@ public class EmailService {
             throw e;
         } finally {
             if (themeChanged) {
-                realm.setEmailTheme(originalTheme);
-                logger.infof("Restored email theme to: %s", originalTheme);
+                if (originalTheme == null) {
+                    realm.setEmailTheme(null);
+                    logger.info("Restored email theme to default (null)");
+                } else {
+                    realm.setEmailTheme(originalTheme);
+                    logger.infof("Restored email theme to: %s", originalTheme);
+                }
             }
         }
     }
