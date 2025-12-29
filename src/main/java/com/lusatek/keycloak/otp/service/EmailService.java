@@ -113,7 +113,7 @@ public class EmailService {
         logger.infof("Starting OTP email send process for user: %s", maskEmail(user.getEmail()));
         
         try {
-            // DIAGNOSTIC: Realm and email configuration
+             // DIAGNOSTIC: Realm and email configuration
             logger.infof("Realm configuration:");
             logger.infof("  - Realm name: %s", realm.getName());
             logger.infof("  - Realm display name: %s", realm.getDisplayName());
@@ -127,6 +127,13 @@ public class EmailService {
             logger.infof("  - User username: %s", user.getUsername());
             logger.infof("  - User first name: %s", user.getFirstName());
             logger.infof("  - User email verified: %s", user.isEmailVerified());
+
+            // Ensure the custom email theme is applied so templates can be resolved
+            String currentTheme = realm.getEmailTheme();
+            if (!"lusatek-otp".equals(currentTheme)) {
+                logger.infof("Email theme '%s' is not lusatek-otp. Applying lusatek-otp theme for OTP emails.", currentTheme);
+                realm.setEmailTheme("lusatek-otp");
+            }
             
             EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class);
             logger.infof("EmailTemplateProvider obtained: %s", emailProvider.getClass().getName());
