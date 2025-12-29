@@ -7,6 +7,8 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.HashMap;
@@ -131,15 +133,7 @@ public class EmailService {
             logger.infof("  - User email verified: %s", user.isEmailVerified());
 
             // Ensure the custom email theme is applied so templates can be resolved without mutating realm state
-            RealmModel themedRealm = (RealmModel) Proxy.newProxyInstance(
-                RealmModel.class.getClassLoader(),
-                new Class[]{RealmModel.class},
-                (proxy, method, args) -> {
-                    if ("getEmailTheme".equals(method.getName()) && method.getParameterCount() == 0) {
-                        return EMAIL_THEME_NAME;
-                    }
-                    return method.invoke(realm, args);
-                });
+            RealmModel themedRealm = createThemedRealmProxy(realm);
             logger.infof("Using proxy realm to force email theme: %s", EMAIL_THEME_NAME);
             
             EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class);
@@ -215,5 +209,29 @@ public class EmailService {
             
             throw e;
         }
+    }
+    
+    /**
+     * Create a proxy realm that forces the email theme without mutating the original realm state
+     */
+    private RealmModel createThemedRealmProxy(RealmModel delegateRealm) {
+        InvocationHandler handler = (proxy, method, args) -> {
+            if ("getEmailTheme".equals(method.getName()) && method.getParameterCount() == 0) {
+                return EMAIL_THEME_NAME;
+            }
+            try {
+                return method.invoke(delegateRealm, args);
+            } catch (InvocationTargetException ite) {
+                throw ite.getCause();
+            } catch (IllegalAccessException | IllegalArgumentException e) {
+                throw new RuntimeException("Failed to invoke method on realm proxy", e);
+            }
+        };
+        
+        return (RealmModel) Proxy.newProxyInstance(
+            RealmModel.class.getClassLoader(),
+            new Class[]{RealmModel.class},
+            handler
+        );
     }
 }
