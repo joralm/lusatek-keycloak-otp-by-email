@@ -1,2 +1,2 @@
 <#ftl output_format="plainText">
-Test email template - no variables
+${msg("emailOtpBody", userName, realmName, otpCode, expiryMinutes, companyName)}

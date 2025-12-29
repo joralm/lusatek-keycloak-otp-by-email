@@ -7,6 +7,7 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -162,8 +163,9 @@ public class EmailService {
             logger.infof("    * themes/lusatek-otp/email/text/email-otp.ftl");
 
             // Send email using custom template (without .ftl extension - Keycloak will find html/text versions)
+            // API signature: send(String subjectFormatKey, List<Object> subjectAttributes, String bodyTemplate, Map<String, Object> bodyAttributes)
             logger.infof("Calling emailProvider.send() method...");
-            emailProvider.send("emailOtpSubject", "email-otp", attributes);
+            emailProvider.send("emailOtpSubject", Collections.emptyList(), "email-otp", attributes);
             
             logger.infof("OTP email sent successfully to user: %s", maskEmail(user.getEmail()));
             logger.infof("=== EMAIL-OTP DIAGNOSTIC END (SUCCESS) ===");
