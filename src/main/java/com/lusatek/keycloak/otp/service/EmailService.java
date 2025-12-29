@@ -9,6 +9,7 @@ import org.keycloak.models.UserModel;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,6 +22,14 @@ public class EmailService {
     
     private static final Logger logger = Logger.getLogger(EmailService.class);
     private static final String EMAIL_THEME_NAME = "lusatek-otp";
+    private static final Method GET_EMAIL_THEME_METHOD;
+    static {
+        try {
+            GET_EMAIL_THEME_METHOD = RealmModel.class.getMethod("getEmailTheme");
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("RealmModel is missing getEmailTheme method", e);
+        }
+    }
     
     private final KeycloakSession session;
     private final RealmModel realm;
@@ -216,13 +225,23 @@ public class EmailService {
      */
     private RealmModel createThemedRealmProxy(RealmModel delegateRealm) {
         InvocationHandler handler = (proxy, method, args) -> {
-            if ("getEmailTheme".equals(method.getName()) && method.getParameterCount() == 0) {
+            if (GET_EMAIL_THEME_METHOD.equals(method)) {
                 return EMAIL_THEME_NAME;
             }
             try {
                 return method.invoke(delegateRealm, args);
             } catch (InvocationTargetException ite) {
-                throw ite.getCause();
+                Throwable cause = ite.getCause();
+                if (cause != null) {
+                    if (cause instanceof RuntimeException) {
+                        throw (RuntimeException) cause;
+                    }
+                    if (cause instanceof Error) {
+                        throw (Error) cause;
+                    }
+                    throw new RuntimeException(cause);
+                }
+                throw new RuntimeException("Invocation failed without cause", ite);
             } catch (IllegalAccessException | IllegalArgumentException e) {
                 throw new RuntimeException("Failed to invoke method on realm proxy", e);
             }
