@@ -7,10 +7,10 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Service for sending OTP emails using Keycloak's email system
@@ -113,8 +113,6 @@ public class EmailService {
         // DIAGNOSTIC LOGGING: Start of email sending process
         logger.infof("=== EMAIL-OTP DIAGNOSTIC START ===");
         logger.infof("Starting OTP email send process for user: %s", maskEmail(user.getEmail()));
-        String originalTheme = realm.getEmailTheme();
-        boolean themeChanged = false;
         
         try {
              // DIAGNOSTIC: Realm and email configuration
@@ -132,17 +130,22 @@ public class EmailService {
             logger.infof("  - User first name: %s", user.getFirstName());
             logger.infof("  - User email verified: %s", user.isEmailVerified());
 
-            // Ensure the custom email theme is applied so templates can be resolved
-            if (!Objects.equals(EMAIL_THEME_NAME, originalTheme)) {
-                logger.infof("Email theme '%s' is not %s. Applying theme for OTP emails.", originalTheme, EMAIL_THEME_NAME);
-                realm.setEmailTheme(EMAIL_THEME_NAME);
-                themeChanged = true;
-            }
+            // Ensure the custom email theme is applied so templates can be resolved without mutating realm state
+            RealmModel themedRealm = (RealmModel) Proxy.newProxyInstance(
+                RealmModel.class.getClassLoader(),
+                new Class[]{RealmModel.class},
+                (proxy, method, args) -> {
+                    if ("getEmailTheme".equals(method.getName()) && method.getParameterCount() == 0) {
+                        return EMAIL_THEME_NAME;
+                    }
+                    return method.invoke(realm, args);
+                });
+            logger.infof("Using proxy realm to force email theme: %s", EMAIL_THEME_NAME);
             
             EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class);
             logger.infof("EmailTemplateProvider obtained: %s", emailProvider.getClass().getName());
             
-            emailProvider.setRealm(realm);
+            emailProvider.setRealm(themedRealm);
             logger.infof("Realm set on email provider");
             
             emailProvider.setUser(user);
@@ -150,7 +153,7 @@ public class EmailService {
             
             // Note: Theme is automatically picked up from realm settings or JAR configuration
             // Do NOT use setAttribute("theme", ...) as it only passes a template variable, not sets the theme
-            logger.infof("Email theme will be resolved from realm setting: %s", realm.getEmailTheme());
+            logger.infof("Email theme will be resolved from realm setting: %s", themedRealm.getEmailTheme());
 
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("otpCode", otpCode);
@@ -211,21 +214,6 @@ public class EmailService {
             }
             
             throw e;
-        } finally {
-            if (themeChanged) {
-                String currentTheme = realm.getEmailTheme();
-                if (Objects.equals(currentTheme, EMAIL_THEME_NAME)) {
-                    if (originalTheme == null) {
-                        realm.setEmailTheme(null);
-                        logger.info("Restored email theme to default (null)");
-                    } else {
-                        realm.setEmailTheme(originalTheme);
-                        logger.infof("Restored email theme to: %s", originalTheme);
-                    }
-                } else {
-                    logger.infof("Skipping theme restoration because realm theme is now: %s", currentTheme);
-                }
-            }
         }
     }
 }
