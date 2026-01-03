@@ -2,13 +2,24 @@ package com.lusatek.keycloak.otp.service;
 
 import org.jboss.logging.Logger;
 import org.keycloak.email.EmailException;
-import org.keycloak.email.EmailTemplateProvider;
+import org.keycloak.email.EmailSenderProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Service for sending OTP emails using Keycloak's email system
@@ -34,12 +45,8 @@ public class EmailService {
      */
     public void sendOtpEmail(UserModel user, String otpCode, int expiryMinutes) throws EmailException {
         try {
-            EmailTemplateProvider emailProvider = session.getProvider(EmailTemplateProvider.class);
-            emailProvider.setRealm(realm);
-            emailProvider.setUser(user);
-            
-            // Set the custom theme programmatically to ensure templates are found
-            emailProvider.setAttribute("theme", "lusatek-otp");
+            Locale locale = session.getContext().resolveLocale(user);
+            ResourceBundle messages = ResourceBundle.getBundle("themes.lusatek-otp.email.messages.messages", locale);
 
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("otpCode", otpCode);
@@ -48,13 +55,81 @@ public class EmailService {
             attributes.put("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
             attributes.put("companyName", "LUSATEK");
 
-            // Send email using custom template (without .ftl extension - Keycloak will find html/text versions)
-            emailProvider.send("emailOtpSubject", "email-otp", attributes);
-            
+            String textTemplate = loadTemplate("themes/lusatek-otp/email/text/email-otp.ftl");
+            String htmlTemplate = loadTemplate("themes/lusatek-otp/email/html/email-otp.ftl");
+
+            String textBody = renderTemplate(textTemplate, attributes, messages);
+            String htmlBody = renderTemplate(htmlTemplate, attributes, messages);
+            String subject = formatMessage(messages, "emailOtpSubject");
+
+            EmailSenderProvider senderProvider = session.getProvider(EmailSenderProvider.class);
+            senderProvider.send(realm.getSmtpConfig(), user, subject, textBody, htmlBody);
+
             logger.infof("OTP email sent successfully to user: %s", user.getEmail());
         } catch (EmailException e) {
             logger.errorf(e, "Failed to send OTP email to user: %s", user.getEmail());
             throw e;
+        } catch (IOException e) {
+            logger.errorf(e, "Failed to render OTP email templates for user: %s", user.getEmail());
+            throw new EmailException("Failed to render OTP email templates", e);
+        } catch (MissingResourceException e) {
+            logger.errorf(e, "Missing email template resources for user: %s", user.getEmail());
+            throw new EmailException("Missing email template resources", e);
         }
+    }
+
+    private String loadTemplate(String templatePath) throws IOException {
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        try (InputStream stream = classLoader.getResourceAsStream(templatePath)) {
+            if (stream == null) {
+                throw new IOException("Template not found in classpath: " + templatePath);
+            }
+            return new String(stream.readAllBytes(), UTF_8);
+        }
+    }
+
+    private String renderTemplate(String templateContent, Map<String, Object> attributes, ResourceBundle messages) {
+        String withMessages = replaceMessages(templateContent, attributes, messages);
+        return replaceAttributes(withMessages, attributes);
+    }
+
+    private String replaceMessages(String content, Map<String, Object> attributes, ResourceBundle messages) {
+        Pattern pattern = Pattern.compile("\\$\\{msg\\(\"([^\"]+)\"(,\\s*([^}]+))?\\)\\}");
+        Matcher matcher = pattern.matcher(content);
+        StringBuffer buffer = new StringBuffer();
+
+        while (matcher.find()) {
+            String key = matcher.group(1);
+            String argsGroup = matcher.group(3);
+            Object[] args = new Object[0];
+
+            if (argsGroup != null && !argsGroup.isBlank()) {
+                String[] argNames = argsGroup.split(",");
+                args = Arrays.stream(argNames)
+                        .map(String::trim)
+                        .map(name -> attributes.getOrDefault(name, ""))
+                        .toArray();
+            }
+
+            String replacement = formatMessage(messages, key, args);
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
+        }
+
+        matcher.appendTail(buffer);
+        return buffer.toString();
+    }
+
+    private String replaceAttributes(String content, Map<String, Object> attributes) {
+        String result = content;
+        for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+            String placeholder = "${" + entry.getKey() + "}";
+            result = result.replace(placeholder, String.valueOf(entry.getValue()));
+        }
+        return result;
+    }
+
+    private String formatMessage(ResourceBundle messages, String key, Object... args) {
+        String pattern = messages.getString(key);
+        return MessageFormat.format(pattern, args == null ? new Object[]{} : args);
     }
 }
