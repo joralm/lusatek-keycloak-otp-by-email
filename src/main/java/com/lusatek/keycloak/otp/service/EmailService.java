@@ -27,6 +27,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class EmailService {
     
     private static final Logger logger = Logger.getLogger(EmailService.class);
+    private static final String MESSAGE_BUNDLE_BASE = "themes.lusatek-otp.email.messages.messages";
+    private static final Pattern MESSAGE_PATTERN = Pattern.compile("\\$\\{msg\\(\"([^\"]+)\"(,\\s*([^}]+))?\\)\\}");
+    private static final Pattern ATTRIBUTE_PATTERN = Pattern.compile("\\$\\{((?!msg\\()[^}]+)}");
     
     private final KeycloakSession session;
     private final RealmModel realm;
@@ -46,7 +49,7 @@ public class EmailService {
     public void sendOtpEmail(UserModel user, String otpCode, int expiryMinutes) throws EmailException {
         try {
             Locale locale = session.getContext().resolveLocale(user);
-            ResourceBundle messages = ResourceBundle.getBundle("themes.lusatek-otp.email.messages.messages", locale);
+            ResourceBundle messages = ResourceBundle.getBundle(MESSAGE_BUNDLE_BASE, locale);
 
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("otpCode", otpCode);
@@ -80,11 +83,19 @@ public class EmailService {
 
     private String loadTemplate(String templatePath) throws IOException {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        try (InputStream stream = classLoader.getResourceAsStream(templatePath)) {
-            if (stream == null) {
-                throw new IOException("Template not found in classpath: " + templatePath);
-            }
-            return new String(stream.readAllBytes(), UTF_8);
+        InputStream stream = classLoader.getResourceAsStream(templatePath);
+
+        if (stream == null) {
+            classLoader = EmailService.class.getClassLoader();
+            stream = classLoader.getResourceAsStream(templatePath);
+        }
+
+        if (stream == null) {
+            throw new IOException("Template not found in classpath: " + templatePath);
+        }
+
+        try (InputStream templateStream = stream) {
+            return new String(templateStream.readAllBytes(), UTF_8);
         }
     }
 
@@ -94,42 +105,67 @@ public class EmailService {
     }
 
     private String replaceMessages(String content, Map<String, Object> attributes, ResourceBundle messages) {
-        Pattern pattern = Pattern.compile("\\$\\{msg\\(\"([^\"]+)\"(,\\s*([^}]+))?\\)\\}");
-        Matcher matcher = pattern.matcher(content);
-        StringBuffer buffer = new StringBuffer();
+        Matcher matcher = MESSAGE_PATTERN.matcher(content);
+        StringBuilder builder = new StringBuilder();
+        int lastIndex = 0;
 
         while (matcher.find()) {
+            builder.append(content, lastIndex, matcher.start());
+
             String key = matcher.group(1);
             String argsGroup = matcher.group(3);
             Object[] args = new Object[0];
 
-            if (argsGroup != null && !argsGroup.isBlank()) {
+            if (argsGroup != null && !argsGroup.trim().isEmpty()) {
                 String[] argNames = argsGroup.split(",");
                 args = Arrays.stream(argNames)
                         .map(String::trim)
-                        .map(name -> attributes.getOrDefault(name, ""))
+                        .map(name -> resolveAttribute(attributes, name))
                         .toArray();
             }
 
             String replacement = formatMessage(messages, key, args);
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
+            builder.append(replacement);
+            lastIndex = matcher.end();
         }
 
-        matcher.appendTail(buffer);
-        return buffer.toString();
+        builder.append(content.substring(lastIndex));
+        return builder.toString();
     }
 
     private String replaceAttributes(String content, Map<String, Object> attributes) {
-        String result = content;
-        for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-            String placeholder = "${" + entry.getKey() + "}";
-            result = result.replace(placeholder, String.valueOf(entry.getValue()));
+        Matcher matcher = ATTRIBUTE_PATTERN.matcher(content);
+        StringBuilder builder = new StringBuilder();
+        int lastIndex = 0;
+
+        while (matcher.find()) {
+            builder.append(content, lastIndex, matcher.start());
+
+            String key = matcher.group(1);
+            Object value = resolveAttribute(attributes, key);
+            builder.append(String.valueOf(value));
+            lastIndex = matcher.end();
         }
-        return result;
+
+        builder.append(content.substring(lastIndex));
+        return builder.toString();
     }
 
     private String formatMessage(ResourceBundle messages, String key, Object... args) {
-        String pattern = messages.getString(key);
-        return MessageFormat.format(pattern, args == null ? new Object[]{} : args);
+        try {
+            String pattern = messages.getString(key);
+            return MessageFormat.format(pattern, args);
+        } catch (MissingResourceException e) {
+            logger.warnf("Missing message key: %s", key);
+            return key;
+        }
+    }
+
+    private Object resolveAttribute(Map<String, Object> attributes, String key) {
+        if (attributes.containsKey(key)) {
+            return attributes.get(key);
+        }
+        logger.warnf("Missing template attribute: %s", key);
+        return "[[" + key + "]]";
     }
 }
