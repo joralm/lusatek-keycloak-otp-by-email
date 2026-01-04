@@ -54,8 +54,8 @@ A production-ready Keycloak extension that provides REST API endpoints for email
 3. **Restart Keycloak**:
    ```bash
    # Standalone
-   ./kc.sh build
-   ./kc.sh start
+   /opt/keycloak/bin/kc.sh build
+   /opt/keycloak/bin/kc.sh start
    
    # Docker
    docker restart keycloak
