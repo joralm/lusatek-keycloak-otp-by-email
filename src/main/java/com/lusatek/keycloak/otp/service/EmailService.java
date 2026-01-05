@@ -29,10 +29,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class EmailService {
     
     private static final Logger logger = Logger.getLogger(EmailService.class);
-    private static final String MESSAGE_BUNDLE_BASE = "themes.lusatek-otp.email.messages.messages";
+    private static final String MESSAGE_BUNDLE_BASE = "theme.lusatek-otp.email.messages.messages";
     private static final Pattern MESSAGE_PATTERN = Pattern.compile("\\$\\{msg\\(\"([^\"]+)\"(,\\s*([^}]+))?\\)\\}");
     private static final Pattern ATTRIBUTE_PATTERN = Pattern.compile("\\$\\{((?!msg\\()[^}]+)}");
-    private static final String THEME_PATH_PREFIX = "themes/lusatek-otp/email/";
+    private static final String THEME_PATH_PREFIX = "theme/lusatek-otp/email/";
     private static final String FILESYSTEM_THEME_BASE = "/opt/keycloak/themes/lusatek-otp/email";
     private static final String THEME_NAME = "lusatek-otp";
     
@@ -63,8 +63,8 @@ public class EmailService {
             attributes.put("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
             attributes.put("companyName", "LUSATEK");
 
-            String textTemplate = loadTemplate("themes/lusatek-otp/email/text/email-otp.ftl");
-            String htmlTemplate = loadTemplate("themes/lusatek-otp/email/html/email-otp.ftl");
+            String textTemplate = loadTemplate("theme/lusatek-otp/email/text/email-otp.ftl");
+            String htmlTemplate = loadTemplate("theme/lusatek-otp/email/html/email-otp.ftl");
 
             String textBody = renderTemplate(textTemplate, attributes, messages);
             String htmlBody = renderTemplate(htmlTemplate, attributes, messages);
