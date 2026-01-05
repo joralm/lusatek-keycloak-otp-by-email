@@ -30,6 +30,8 @@ public class EmailService {
     private static final String MESSAGE_BUNDLE_BASE = "themes.lusatek-otp.email.messages.messages";
     private static final Pattern MESSAGE_PATTERN = Pattern.compile("\\$\\{msg\\(\"([^\"]+)\"(,\\s*([^}]+))?\\)\\}");
     private static final Pattern ATTRIBUTE_PATTERN = Pattern.compile("\\$\\{((?!msg\\()[^}]+)}");
+    private static final String THEME_PATH_PREFIX = "themes/lusatek-otp/email/";
+    private static final String FILESYSTEM_THEME_BASE = "/opt/keycloak/themes/lusatek-otp/email";
     
     private final KeycloakSession session;
     private final RealmModel realm;
@@ -83,21 +85,23 @@ public class EmailService {
 
     private String loadTemplate(String templatePath) throws IOException {
         // 1) Try to read from filesystem (/opt/keycloak/themes/...)
-        try {
-            // templatePath expected: "themes/lusatek-otp/email/text/email-otp.ftl"
-            String prefix = "themes/lusatek-otp/email/";
-            if (templatePath.startsWith(prefix)) {
-                String relative = templatePath.substring(prefix.length()); // ex: "text/email-otp.ftl"
-                java.nio.file.Path fsPath = java.nio.file.Paths.get("/opt/keycloak/themes/lusatek-otp/email", relative);
+        if (templatePath.startsWith(THEME_PATH_PREFIX)) {
+            try {
+                // templatePath expected: "themes/lusatek-otp/email/text/email-otp.ftl"
+                String relative = templatePath.substring(THEME_PATH_PREFIX.length()); // ex: "text/email-otp.ftl"
+                java.nio.file.Path fsPath = java.nio.file.Paths.get(FILESYSTEM_THEME_BASE, relative);
                 if (java.nio.file.Files.exists(fsPath)) {
                     byte[] bytes = java.nio.file.Files.readAllBytes(fsPath);
                     logger.debugf("Template loaded from filesystem: %s", fsPath);
                     return new String(bytes, UTF_8);
                 }
+            } catch (SecurityException e) {
+                // Don't fail here — try fallback to classpath
+                logger.debugf(e, "Filesystem access denied for template, falling back to classpath: %s", templatePath);
+            } catch (IOException e) {
+                // Log filesystem I/O error but continue to classpath fallback
+                logger.debugf(e, "Filesystem read for template failed, falling back to classpath: %s", templatePath);
             }
-        } catch (SecurityException | IOException e) {
-            // Don't fail here — try fallback to classpath
-            logger.debugf(e, "Filesystem read for template failed, falling back to classpath: %s", templatePath);
         }
 
         // 2) Fallback to classpath (original behavior)
