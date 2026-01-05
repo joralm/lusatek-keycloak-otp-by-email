@@ -1,0 +1,8 @@
+{
+  "themes": [
+    {
+      "name": "lusatek-otp",
+      "types": ["email"]
+    }
+  ]
+}
