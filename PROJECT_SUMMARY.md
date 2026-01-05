@@ -73,7 +73,6 @@ cp target/keycloak-otp-by-email-1.0.0.jar /opt/keycloak/providers/
 ```
 
 ### 2. Configuração
-- Configurar tema de email no realm (Realm Settings → Themes → Email Theme = `lusatek-otp`)
 - Configurar SMTP no realm
 - Criar service account client com roles apropriadas
 - Obter client secret

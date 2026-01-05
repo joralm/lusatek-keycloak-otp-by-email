@@ -61,16 +61,15 @@ A production-ready Keycloak extension that provides REST API endpoints for email
    docker restart keycloak
    ```
 
-4. **Configure Email Theme**: In Keycloak Admin Console
-   - Go to Realm Settings → Themes tab
-   - Set Email Theme to `lusatek-otp`
-   - Click Save
-   - **Important**: This step is **required** for Keycloak's built-in SMTP test feature to work properly
-   - Note: The OTP email endpoints will work even without this configuration, but it's recommended to set it
+4. **Configure Email Theme** (Optional): In Keycloak Admin Console
+   - The extension automatically uses the `lusatek-otp` theme programmatically
+   - Optionally, you can set it as the default: Go to Realm Settings → Themes tab
+   - Set Email Theme to `lusatek-otp` and Click Save
+   - Note: This step is **optional** as of version 1.0.0+
 
 5. **Configure SMTP**: In Keycloak Admin Console → Realm Settings → Email
    - Set SMTP host, port, username, password
-   - Test email configuration (requires step 4 to be completed)
+   - Test email configuration
 
 ### Configuration
 
@@ -696,26 +695,7 @@ This extension is developed and maintained by **LUSATEK**.
 
 - **Issues**: [GitHub Issues](https://github.com/joralm/joralm-keycloak-otp-by-email/issues)
 - **Documentation**: [docs/](docs/)
-  - [Installation Guide](docs/INSTALLATION.md)
-  - [API Reference](docs/API.md)
-  - [Examples](docs/EXAMPLES.md)
-  - [Project Structure](docs/STRUCTURE.md)
-  - [Theme Configuration](docs/THEME_FIX.md)
-  - **[SMTP Test Issue Fix](docs/SMTP_TEST_FIX.md)** ⚠️ Important if getting "Template not found" error
 - **Keycloak Docs**: [www.keycloak.org/docs](https://www.keycloak.org/docs)
-
-## ❗ Common Issues
-
-### SMTP Test Fails with "Template not found for name text/email-test.ftl"
-
-**Problem:** Test connection button in Keycloak Admin Console fails, but OTP emails work fine.
-
-**Solution:** You must configure the email theme in realm settings:
-1. Go to Realm Settings → Themes
-2. Set Email Theme to `lusatek-otp`
-3. Click Save
-
-**Details:** See [SMTP Test Issue Fix Guide](docs/SMTP_TEST_FIX.md) for complete explanation.
 
 ## 🙏 Acknowledgments
 

@@ -5,31 +5,6 @@ All notable changes to the LUSATEK Keycloak OTP by Email extension will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.2] - 2026-01-05
-
-### Changed
-- **IMPORTANT**: Email theme configuration is now **required** (was optional)
-  - Updated documentation to clarify that setting Email Theme to `lusatek-otp` in Realm Settings is mandatory for SMTP test feature
-  - OTP endpoints continue to work without this setting, but Keycloak's "Test connection" button requires it
-  
-### Added
-- Added comprehensive SMTP test issue solution guide (docs/SMTP_TEST_FIX.md)
-  - Explains why "Template not found for name text/email-test.ftl" error occurs
-  - Provides step-by-step fix instructions
-  - Includes Docker Compose configuration examples
-  - Contains complete troubleshooting checklist
-
-### Documentation
-- Updated README.md with common issues section and SMTP test fix reference
-- Updated docs/INSTALLATION.md with detailed email theme configuration steps
-- Updated docs/THEME_FIX.md with additional context about SMTP test requirements
-- Updated PROJECT_SUMMARY.md to include email theme configuration in setup steps
-- All documentation now clearly states email theme configuration is required for SMTP test
-
-### Fixed
-- Documentation clarity issue where users thought email theme configuration was optional
-- Added troubleshooting section for "Template not found" errors during SMTP testing
-
 ## [1.0.1] - 2025-12-19
 
 ### Fixed

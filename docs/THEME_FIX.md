@@ -84,12 +84,6 @@ Added a new installation step to configure the email theme in the Keycloak realm
 > - Go to Realm Settings → Themes tab
 > - Set Email Theme to `lusatek-otp`
 > - Click Save
-> - **Important**: This is required for Keycloak's built-in SMTP test to work
-
-**Why this is needed**: 
-- The OTP email endpoints use the theme programmatically, so they work without this setting
-- However, Keycloak's "Test connection" button in Email settings uses the realm's configured email theme
-- Without setting the theme explicitly, you'll get "Template not found for name text/email-test.ftl" error
 
 ## How to Deploy
 
@@ -171,16 +165,13 @@ You should receive an email with the OTP code.
 
 ### Theme Not Found
 
-**Symptom:** Getting "Template not found for name text/email-test.ftl" error when testing SMTP
+**Symptom:** Still getting "Template not found" error
 
 **Solutions:**
-1. **Set the Email Theme**: Go to Realm Settings → Themes → Email Theme and select `lusatek-otp`, then Save
+1. Verify the theme is selected in Realm Settings → Themes → Email Theme
 2. Check Keycloak logs for theme loading errors
 3. Rebuild Keycloak: `./kc.sh build`
 4. Restart Keycloak
-5. Verify the JAR contains theme files: `jar -tf keycloak-otp-by-email-1.0.0.jar | grep themes/`
-
-**Note**: This error specifically occurs when using Keycloak's "Test connection" button because it uses the realm's configured email theme, not the programmatic theme selection used by the OTP endpoints.
 
 ### Email Not Sending
 
