@@ -6,6 +6,8 @@ import org.keycloak.email.EmailSenderProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.theme.Theme;
+import org.keycloak.theme.ThemeProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +34,7 @@ public class EmailService {
     private static final Pattern ATTRIBUTE_PATTERN = Pattern.compile("\\$\\{((?!msg\\()[^}]+)}");
     private static final String THEME_PATH_PREFIX = "themes/lusatek-otp/email/";
     private static final String FILESYSTEM_THEME_BASE = "/opt/keycloak/themes/lusatek-otp/email";
+    private static final String THEME_NAME = "lusatek-otp";
     
     private final KeycloakSession session;
     private final RealmModel realm;
@@ -84,12 +87,35 @@ public class EmailService {
     }
 
     private String loadTemplate(String templatePath) throws IOException {
-        // 1) Try to read from filesystem (/opt/keycloak/themes/...)
+        // Extract relative path from full path
+        String relativePath = templatePath.startsWith(THEME_PATH_PREFIX) 
+            ? templatePath.substring(THEME_PATH_PREFIX.length()) 
+            : templatePath;
+        
+        // 1) Try to load from Keycloak's ThemeProvider (proper way for JAR themes)
+        try {
+            ThemeProvider themeProvider = session.getProvider(ThemeProvider.class);
+            if (themeProvider != null) {
+                Theme theme = themeProvider.getTheme(THEME_NAME, Theme.Type.EMAIL);
+                if (theme != null) {
+                    InputStream stream = theme.getResourceAsStream(relativePath);
+                    if (stream != null) {
+                        try (InputStream themeStream = stream) {
+                            logger.debugf("Template loaded from Keycloak theme provider: %s", relativePath);
+                            return new String(themeStream.readAllBytes(), UTF_8);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Log but don't fail - try other methods
+            logger.debugf(e, "Failed to load template from theme provider, trying filesystem: %s", templatePath);
+        }
+        
+        // 2) Try to read from filesystem (/opt/keycloak/themes/...)
         if (templatePath.startsWith(THEME_PATH_PREFIX)) {
             try {
-                // templatePath expected: "themes/lusatek-otp/email/text/email-otp.ftl"
-                String relative = templatePath.substring(THEME_PATH_PREFIX.length()); // ex: "text/email-otp.ftl"
-                java.nio.file.Path fsPath = java.nio.file.Paths.get(FILESYSTEM_THEME_BASE, relative);
+                java.nio.file.Path fsPath = java.nio.file.Paths.get(FILESYSTEM_THEME_BASE, relativePath);
                 if (java.nio.file.Files.exists(fsPath)) {
                     byte[] bytes = java.nio.file.Files.readAllBytes(fsPath);
                     logger.debugf("Template loaded from filesystem: %s", fsPath);
@@ -104,7 +130,7 @@ public class EmailService {
             }
         }
 
-        // 2) Fallback to classpath (original behavior)
+        // 3) Fallback to classpath (direct loading)
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         InputStream stream = classLoader.getResourceAsStream(templatePath);
 
@@ -114,7 +140,7 @@ public class EmailService {
         }
 
         if (stream == null) {
-            throw new IOException("Template not found in filesystem or classpath: " + templatePath);
+            throw new IOException("Template not found in theme provider, filesystem, or classpath: " + templatePath);
         }
 
         try (InputStream templateStream = stream) {
