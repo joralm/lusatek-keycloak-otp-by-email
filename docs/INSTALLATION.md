@@ -323,11 +323,29 @@ Username: postmaster@your-domain.mailgun.org
 Password: Your Mailgun password
 ```
 
-### 3. Test Email Configuration
+### 3. Configure Email Theme
 
-1. In Keycloak Admin Console, click **Test connection**
-2. Keycloak will send a test email to the admin user
-3. Verify email is received
+**Important**: This step is **required** for Keycloak's built-in SMTP test feature to work.
+
+1. Go to **Realm Settings** → **Themes** tab
+2. In **Email Theme** dropdown, select `lusatek-otp`
+3. Click **Save**
+
+**Note**: 
+- The OTP email endpoints (`/email-otp/send`) will work even without this configuration as they use the theme programmatically
+- However, Keycloak's "Test connection" button in Email settings **requires** the theme to be set
+- Without this configuration, you'll get a "Template not found" error when testing SMTP
+
+### 4. Test Email Configuration
+
+1. In Keycloak Admin Console, **ensure step 3 is completed first**
+2. Click **Test connection** button
+3. Keycloak will send a test email to the admin user
+4. Verify email is received
+
+**Troubleshooting**:
+- If you get "Template not found for name text/email-test.ftl", verify the Email Theme is set to `lusatek-otp` in Realm Settings → Themes
+- Restart Keycloak after deploying the extension JAR to ensure themes are properly loaded
 
 ---
 
@@ -423,6 +441,49 @@ cd /opt/keycloak
 ./kc.sh build
 ./kc.sh start
 ```
+
+### Extension Not Loading
+
+**Symptoms**: Extension endpoints return 404
+
+**Checks**:
+1. JAR file in `/opt/keycloak/providers/` directory
+2. Keycloak was rebuilt after adding JAR: `./kc.sh build`
+3. Keycloak was restarted
+4. Check logs for loading errors
+
+**Solution**:
+```bash
+# Verify JAR is present
+ls -lh /opt/keycloak/providers/keycloak-otp-by-email-*.jar
+
+# Rebuild and restart
+./kc.sh build
+./kc.sh start
+
+# Check health endpoint
+curl http://localhost:8080/realms/YOUR_REALM/email-otp/health
+```
+
+### Email Template Not Found
+
+**Symptoms**: "Template not found for name text/email-test.ftl" error when testing SMTP
+
+**Root Cause**: The email theme is not configured in realm settings
+
+**Solution**:
+1. Go to **Realm Settings** → **Themes** tab
+2. In **Email Theme** dropdown, select `lusatek-otp`
+3. Click **Save**
+4. Try testing SMTP again
+
+**Note**: This is **required** for Keycloak's SMTP test feature. The OTP endpoints will work without this configuration, but the admin console's "Test connection" button needs the theme to be explicitly set.
+
+**If still not working**:
+1. Verify the extension JAR was deployed: `jar -tf keycloak-otp-by-email-1.0.0.jar | grep themes/`
+2. Restart Keycloak to ensure theme is loaded
+3. Check Keycloak logs for theme loading errors
+4. Ensure you're using Keycloak 23.x or later
 
 ### Email Not Sending
 
