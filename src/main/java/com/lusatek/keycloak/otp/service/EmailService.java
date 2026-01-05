@@ -82,6 +82,25 @@ public class EmailService {
     }
 
     private String loadTemplate(String templatePath) throws IOException {
+        // 1) Try to read from filesystem (/opt/keycloak/themes/...)
+        try {
+            // templatePath expected: "themes/lusatek-otp/email/text/email-otp.ftl"
+            String prefix = "themes/lusatek-otp/email/";
+            if (templatePath.startsWith(prefix)) {
+                String relative = templatePath.substring(prefix.length()); // ex: "text/email-otp.ftl"
+                java.nio.file.Path fsPath = java.nio.file.Paths.get("/opt/keycloak/themes/lusatek-otp/email", relative);
+                if (java.nio.file.Files.exists(fsPath)) {
+                    byte[] bytes = java.nio.file.Files.readAllBytes(fsPath);
+                    logger.debugf("Template loaded from filesystem: %s", fsPath);
+                    return new String(bytes, UTF_8);
+                }
+            }
+        } catch (SecurityException | IOException e) {
+            // Don't fail here — try fallback to classpath
+            logger.debugf(e, "Filesystem read for template failed, falling back to classpath: %s", templatePath);
+        }
+
+        // 2) Fallback to classpath (original behavior)
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         InputStream stream = classLoader.getResourceAsStream(templatePath);
 
@@ -91,10 +110,11 @@ public class EmailService {
         }
 
         if (stream == null) {
-            throw new IOException("Template not found in classpath: " + templatePath);
+            throw new IOException("Template not found in filesystem or classpath: " + templatePath);
         }
 
         try (InputStream templateStream = stream) {
+            logger.debugf("Template loaded from classpath: %s", templatePath);
             return new String(templateStream.readAllBytes(), UTF_8);
         }
     }
