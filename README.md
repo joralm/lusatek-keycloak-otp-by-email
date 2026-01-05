@@ -696,7 +696,26 @@ This extension is developed and maintained by **LUSATEK**.
 
 - **Issues**: [GitHub Issues](https://github.com/joralm/joralm-keycloak-otp-by-email/issues)
 - **Documentation**: [docs/](docs/)
+  - [Installation Guide](docs/INSTALLATION.md)
+  - [API Reference](docs/API.md)
+  - [Examples](docs/EXAMPLES.md)
+  - [Project Structure](docs/STRUCTURE.md)
+  - [Theme Configuration](docs/THEME_FIX.md)
+  - **[SMTP Test Issue Fix](docs/SMTP_TEST_FIX.md)** ⚠️ Important if getting "Template not found" error
 - **Keycloak Docs**: [www.keycloak.org/docs](https://www.keycloak.org/docs)
+
+## ❗ Common Issues
+
+### SMTP Test Fails with "Template not found for name text/email-test.ftl"
+
+**Problem:** Test connection button in Keycloak Admin Console fails, but OTP emails work fine.
+
+**Solution:** You must configure the email theme in realm settings:
+1. Go to Realm Settings → Themes
+2. Set Email Theme to `lusatek-otp`
+3. Click Save
+
+**Details:** See [SMTP Test Issue Fix Guide](docs/SMTP_TEST_FIX.md) for complete explanation.
 
 ## 🙏 Acknowledgments
 
