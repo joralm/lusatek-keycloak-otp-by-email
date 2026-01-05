@@ -6,6 +6,8 @@ import org.keycloak.email.EmailSenderProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.theme.Theme;
+import org.keycloak.theme.ThemeProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,9 +29,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class EmailService {
     
     private static final Logger logger = Logger.getLogger(EmailService.class);
-    private static final String MESSAGE_BUNDLE_BASE = "themes.lusatek-otp.email.messages.messages";
+    private static final String MESSAGE_BUNDLE_BASE = "theme.lusatek-otp.email.messages.messages";
     private static final Pattern MESSAGE_PATTERN = Pattern.compile("\\$\\{msg\\(\"([^\"]+)\"(,\\s*([^}]+))?\\)\\}");
     private static final Pattern ATTRIBUTE_PATTERN = Pattern.compile("\\$\\{((?!msg\\()[^}]+)}");
+    private static final String THEME_PATH_PREFIX = "theme/lusatek-otp/email/";
+    private static final String FILESYSTEM_THEME_BASE = "/opt/keycloak/themes/lusatek-otp/email";
+    private static final String THEME_NAME = "lusatek-otp";
     
     private final KeycloakSession session;
     private final RealmModel realm;
@@ -58,8 +63,8 @@ public class EmailService {
             attributes.put("realmName", realm.getDisplayName() != null ? realm.getDisplayName() : realm.getName());
             attributes.put("companyName", "LUSATEK");
 
-            String textTemplate = loadTemplate("themes/lusatek-otp/email/text/email-otp.ftl");
-            String htmlTemplate = loadTemplate("themes/lusatek-otp/email/html/email-otp.ftl");
+            String textTemplate = loadTemplate("theme/lusatek-otp/email/text/email-otp.ftl");
+            String htmlTemplate = loadTemplate("theme/lusatek-otp/email/html/email-otp.ftl");
 
             String textBody = renderTemplate(textTemplate, attributes, messages);
             String htmlBody = renderTemplate(htmlTemplate, attributes, messages);
@@ -82,6 +87,65 @@ public class EmailService {
     }
 
     private String loadTemplate(String templatePath) throws IOException {
+        // Extract relative path from full path
+        String relativePath = templatePath.startsWith(THEME_PATH_PREFIX) 
+            ? templatePath.substring(THEME_PATH_PREFIX.length()) 
+            : templatePath;
+        
+        // Validate path to prevent directory traversal attacks
+        if (relativePath.contains("..") || relativePath.startsWith("/") || relativePath.contains("\\")) {
+            throw new IOException("Invalid template path - potential path traversal attempt: " + templatePath);
+        }
+        
+        // 1) Try to load from Keycloak's ThemeProvider (proper way for JAR themes)
+        try {
+            ThemeProvider themeProvider = session.getProvider(ThemeProvider.class);
+            if (themeProvider != null) {
+                Theme theme = themeProvider.getTheme(THEME_NAME, Theme.Type.EMAIL);
+                if (theme != null) {
+                    InputStream stream = theme.getResourceAsStream(relativePath);
+                    if (stream != null) {
+                        try (InputStream themeStream = stream) {
+                            logger.debugf("Template loaded from Keycloak theme provider: %s", relativePath);
+                            return new String(themeStream.readAllBytes(), UTF_8);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            // Log IO errors but don't fail - try other methods
+            logger.debugf(e, "IOException loading template from theme provider, trying filesystem: %s", templatePath);
+        } catch (RuntimeException e) {
+            // Let runtime exceptions propagate - these indicate programming errors
+            throw e;
+        }
+        
+        // 2) Try to read from filesystem (/opt/keycloak/themes/...)
+        if (templatePath.startsWith(THEME_PATH_PREFIX)) {
+            try {
+                java.nio.file.Path fsPath = java.nio.file.Paths.get(FILESYSTEM_THEME_BASE, relativePath);
+                // Verify the resolved path is still within the theme directory (prevent path traversal)
+                java.nio.file.Path normalizedPath = fsPath.normalize();
+                if (!normalizedPath.startsWith(FILESYSTEM_THEME_BASE)) {
+                    logger.warnf("Path traversal attempt detected: %s resolved to %s", templatePath, normalizedPath);
+                    throw new SecurityException("Path traversal attempt detected");
+                }
+                
+                if (java.nio.file.Files.exists(normalizedPath)) {
+                    byte[] bytes = java.nio.file.Files.readAllBytes(normalizedPath);
+                    logger.debugf("Template loaded from filesystem: %s", normalizedPath);
+                    return new String(bytes, UTF_8);
+                }
+            } catch (SecurityException e) {
+                // Don't fail here — try fallback to classpath
+                logger.debugf(e, "Filesystem access denied for template, falling back to classpath: %s", templatePath);
+            } catch (IOException e) {
+                // Log filesystem I/O error but continue to classpath fallback
+                logger.debugf(e, "Filesystem read for template failed, falling back to classpath: %s", templatePath);
+            }
+        }
+
+        // 3) Fallback to classpath (direct loading)
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         InputStream stream = classLoader.getResourceAsStream(templatePath);
 
@@ -91,10 +155,11 @@ public class EmailService {
         }
 
         if (stream == null) {
-            throw new IOException("Template not found in classpath: " + templatePath);
+            throw new IOException("Template not found in theme provider, filesystem, or classpath: " + templatePath);
         }
 
         try (InputStream templateStream = stream) {
+            logger.debugf("Template loaded from classpath: %s", templatePath);
             return new String(templateStream.readAllBytes(), UTF_8);
         }
     }
