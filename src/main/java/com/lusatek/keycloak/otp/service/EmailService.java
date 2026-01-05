@@ -92,6 +92,11 @@ public class EmailService {
             ? templatePath.substring(THEME_PATH_PREFIX.length()) 
             : templatePath;
         
+        // Validate path to prevent directory traversal attacks
+        if (relativePath.contains("..") || relativePath.startsWith("/") || relativePath.contains("\\")) {
+            throw new IOException("Invalid template path - potential path traversal attempt: " + templatePath);
+        }
+        
         // 1) Try to load from Keycloak's ThemeProvider (proper way for JAR themes)
         try {
             ThemeProvider themeProvider = session.getProvider(ThemeProvider.class);
@@ -107,18 +112,28 @@ public class EmailService {
                     }
                 }
             }
-        } catch (Exception e) {
-            // Log but don't fail - try other methods
-            logger.debugf(e, "Failed to load template from theme provider, trying filesystem: %s", templatePath);
+        } catch (IOException e) {
+            // Log IO errors but don't fail - try other methods
+            logger.debugf(e, "IOException loading template from theme provider, trying filesystem: %s", templatePath);
+        } catch (RuntimeException e) {
+            // Let runtime exceptions propagate - these indicate programming errors
+            throw e;
         }
         
         // 2) Try to read from filesystem (/opt/keycloak/themes/...)
         if (templatePath.startsWith(THEME_PATH_PREFIX)) {
             try {
                 java.nio.file.Path fsPath = java.nio.file.Paths.get(FILESYSTEM_THEME_BASE, relativePath);
-                if (java.nio.file.Files.exists(fsPath)) {
-                    byte[] bytes = java.nio.file.Files.readAllBytes(fsPath);
-                    logger.debugf("Template loaded from filesystem: %s", fsPath);
+                // Verify the resolved path is still within the theme directory (prevent path traversal)
+                java.nio.file.Path normalizedPath = fsPath.normalize();
+                if (!normalizedPath.startsWith(FILESYSTEM_THEME_BASE)) {
+                    logger.warnf("Path traversal attempt detected: %s resolved to %s", templatePath, normalizedPath);
+                    throw new SecurityException("Path traversal attempt detected");
+                }
+                
+                if (java.nio.file.Files.exists(normalizedPath)) {
+                    byte[] bytes = java.nio.file.Files.readAllBytes(normalizedPath);
+                    logger.debugf("Template loaded from filesystem: %s", normalizedPath);
                     return new String(bytes, UTF_8);
                 }
             } catch (SecurityException e) {
